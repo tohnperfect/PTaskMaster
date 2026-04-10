@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TaskMaster</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e1219;--bg2:#161b27;--bg3:#1e2535;
+  --b:rgba(255,255,255,0.08);--b2:rgba(255,255,255,0.14);
+  --t:#fff;--m:#9ca3af;--d:#6b7280;
+  --a:#6366f1;--al:#818cf8;--ab:rgba(99,102,241,0.15);
+  --g:#34d399;--gb:rgba(52,211,153,0.15);
+  --r:#ef4444;--rb:rgba(239,68,68,0.12);
+  --fd:'DM Serif Display',serif;--fb:'Plus Jakarta Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--fb);background:var(--bg);color:var(--t);min-height:100vh}
+#root{max-width:480px;margin:0 auto}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+.dp{font-family:var(--fd);letter-spacing:-.02em}
+input,textarea,select{font-family:var(--fb);background:rgba(255,255,255,0.07);border:1px solid var(--b);border-radius:12px;color:var(--t);outline:none;font-size:14px;width:100%;padding:12px 16px;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:rgba(99,102,241,0.5)}
+input[type=range]{padding:0;border:none;background:transparent}
+select{appearance:none;color-scheme:dark}
+select option{background:#1e2535}
+textarea{resize:none}
+input[type=datetime-local]{color-scheme:dark}
+::placeholder{color:var(--d)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;border-radius:12px;font-family:var(--fb);font-weight:600;transition:opacity .15s,transform .1s;user-select:none}
+.btn:active{transform:scale(.97)}
+.bp{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 20px;font-size:14px;border-radius:16px;width:100%}
+.bg{background:rgba(255,255,255,0.05);color:var(--m);padding:10px;border-radius:12px}
+.bg:hover{color:var(--t)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg2);border:1px solid var(--b);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:18px 18px 40px}
+.hdl{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,0.15);margin:0 auto 16px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--b);background:rgba(255,255,255,0.06);color:var(--m);cursor:pointer;transition:all .2s}
+.ca{background:var(--ab);border-color:var(--a);color:var(--al)}
+.cg{background:var(--gb);border-color:var(--g);color:#6ee7b7}
+.pb{width:100%;height:6px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden;margin-top:7px}
+.pf{height:100%;border-radius:999px;transition:width .7s}
+
+/* Header */
+#hdr{position:sticky;top:0;z-index:30;padding:0 14px;background:rgba(14,18,25,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--b)}
+.htop{display:flex;align-items:center;justify-content:space-between;padding:11px 0 9px}
+.tabs{display:flex;gap:3px;padding:4px;background:rgba(255,255,255,0.05);border-radius:12px;margin-bottom:9px}
+.tab{flex:1;padding:7px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;background:transparent;color:var(--d);transition:all .2s}
+.tab.on{background:#fff;color:#0e1219}
+.tbdg{font-size:11px;padding:2px 6px;border-radius:999px}
+.tab.on .tbdg{background:rgba(0,0,0,0.1);color:#374151}
+.tab:not(.on) .tbdg{background:rgba(255,255,255,0.1);color:var(--m)}
+.fr{display:flex;gap:7px;overflow-x:auto;padding-bottom:9px;scrollbar-width:none}
+.fr::-webkit-scrollbar{display:none}
+.fp{flex-shrink:0;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--b);background:rgba(255,255,255,0.05);color:var(--d);cursor:pointer;transition:all .2s;white-space:nowrap}
+.cr{display:flex;gap:7px;padding-bottom:11px}
+.cb{flex:1;display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.05);border-radius:12px;padding:8px 11px}
+.cb svg{flex-shrink:0;opacity:.5}
+.cb select{background:transparent;border:none;padding:0;font-size:12px;color:var(--m);flex:1}
+
+/* Task cards */
+.tc{background:var(--bg3);border:1px solid var(--b);border-radius:20px;padding:13px;margin-bottom:9px}
+.tc.od{border-color:rgba(239,68,68,0.4)}
+.tc.dn{opacity:.55}
+.tt{display:flex;align-items:flex-start;gap:9px}
+.cbx{width:24px;height:24px;border-radius:8px;border:2px solid rgba(255,255,255,0.2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-top:2px}
+.cbx.on{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none}
+.tb{flex:1;min-width:0;cursor:pointer}
+.mi{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--m)}
+.ta{display:flex;gap:3px;flex-shrink:0}
+.ta button{padding:6px;border-radius:8px;border:none;cursor:pointer;background:transparent;color:var(--d);transition:color .2s}
+.ta button:hover{color:var(--al)}
+.ta .dl:hover{color:var(--r)}
+.tx{margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.05);font-size:12px;color:var(--m);line-height:1.6;display:none}
+.tx.on{display:block}
+.gh{display:flex;align-items:center;gap:7px;margin:14px 0 7px}
+.gl{font-size:13px;font-weight:700}
+
+/* Form */
+.fg{margin-bottom:14px}
+.fl{font-size:12px;color:var(--m);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.tbtn{padding:11px;border-radius:12px;border:1px solid var(--b);background:rgba(255,255,255,0.05);cursor:pointer;text-align:left;transition:all .2s}
+.tbtn .tl{font-size:13px;font-weight:600;color:var(--t)}
+.tbtn .ts{font-size:11px;color:var(--m);margin-top:2px}
+.cr2{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px}
+.ar{display:flex;gap:7px;margin-top:7px}
+.ar input{flex:1;padding:8px 12px;font-size:12px}
+.ab{padding:8px 13px;border-radius:12px;border:none;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap}
+.vw{position:relative}
+.vw input{padding-left:30px}
+.vpx{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:14px;font-weight:700;color:var(--g);pointer-events:none}
+.vpv{position:absolute;right:15px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--g);pointer-events:none}
+.prs{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.prb{padding:5px 10px;border-radius:999px;font-size:11px;border:1px solid var(--b);background:rgba(255,255,255,0.05);color:var(--d);cursor:pointer;transition:all .2s}
+.prb.on{background:var(--gb);border-color:var(--g);color:#6ee7b7}
+
+/* Analytics */
+.at{display:flex;gap:3px;padding:4px;background:rgba(255,255,255,0.05);border-radius:12px;margin-bottom:13px}
+.atb{flex:1;padding:6px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--d);transition:all .2s}
+.atb.on{background:#fff;color:#0e1219}
+.sg{display:grid;gap:9px;margin-bottom:12px}
+.sg.c3{grid-template-columns:repeat(3,1fr)}
+.sg.c2{grid-template-columns:repeat(2,1fr)}
+.sb{background:rgba(255,255,255,0.05);border-radius:16px;padding:13px;text-align:center}
+.sv{font-size:22px;font-weight:700;font-family:var(--fd)}
+.sl{font-size:11px;color:var(--m);margin-top:3px}
+.ar2{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:13px;margin-bottom:7px}
+.art{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.ct{border:1px solid var(--b);border-radius:16px;overflow:hidden}
+.cth{display:grid;grid-template-columns:1fr 1fr 1fr;padding:9px 14px;font-size:11px;font-weight:700;color:var(--d);text-transform:uppercase;letter-spacing:.06em;background:rgba(255,255,255,0.03)}
+.ctr{display:grid;grid-template-columns:1fr 1fr 1fr;padding:11px 14px;font-size:13px;border-top:1px solid rgba(255,255,255,0.04);align-items:center}
+.ctr:nth-child(odd){background:rgba(255,255,255,0.02)}
+
+/* Login */
+#login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;background:radial-gradient(ellipse at 50% 0%,rgba(99,102,241,0.18) 0%,transparent 65%)}
+.logo{width:68px;height:68px;border-radius:22px;margin:0 auto 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 24px;border-radius:16px;border:1px solid var(--b);background:rgba(255,255,255,0.08);cursor:pointer;font-size:15px;font-weight:600;color:var(--t);width:100%;max-width:300px;margin:24px auto 0;transition:background .2s;font-family:var(--fb)}
+.gbtn:hover{background:rgba(255,255,255,0.13)}
+.gbtn svg{width:20px;height:20px;flex-shrink:0}
+
+/* Workspace screen */
+#wss{min-height:100vh;padding:22px 14px 40px;max-width:480px;margin:0 auto}
+.wsh{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.wsc{background:var(--bg3);border:1px solid var(--b);border-radius:20px;padding:15px;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:9px}
+.wsc:hover{border-color:var(--b2);background:#232d42}
+.wsc.own{border-left:3px solid var(--al)}
+.wsc.shr{border-left:3px solid var(--g)}
+.wsc-h{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
+.wsc-n{font-size:15px;font-weight:700}
+.wsbdg{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em}
+.wsac{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--b)}
+.wsb{flex:1;padding:8px;border-radius:10px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--fb);transition:all .2s}
+.nwf{background:var(--bg2);border:1px solid var(--b);border-radius:20px;padding:18px;margin-bottom:14px;display:none}
+.nwf.on{display:block}
+
+/* Workspace bar in app */
+#wsbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);cursor:pointer;transition:background .2s}
+#wsbar:hover{background:rgba(99,102,241,0.14)}
+
+/* Share */
+.sur{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b)}
+.sur:last-child{border-bottom:none}
+
+/* Sync / Toast */
+#sync{position:fixed;bottom:14px;right:14px;background:rgba(30,37,53,0.95);border:1px solid var(--b);border-radius:999px;padding:6px 14px;font-size:12px;color:var(--m);display:flex;align-items:center;gap:6px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+#sync.on{opacity:1}
+#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--b);border-radius:12px;padding:10px 18px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+.spin{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.av{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--b);flex-shrink:0}
+.avf{width:32px;height:32px;border-radius:50%;background:var(--ab);border:2px solid var(--a);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--al);flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="sync"><span class="spin">⟳</span><span id="smsg">Syncing…</span></div>
+<div id="toast"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// ═══════════════════════════════════════════════════
+// CONFIG — only edit CLIENT_ID before deploying
+// ═══════════════════════════════════════════════════
+const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+// ═══════════════════════════════════════════════════
+const SCOPES = 'email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
+const TCOLS = ['id','title','description','isBig','isUrgent','priority','value','deadline','assignees','group','done','createdAt','finishedAt','notes'];
+const QD = {'big-urgent':{l:'Big & Urgent',c:'#ef4444',bg:'rgba(239,68,68,0.12)',e:'🔥'},'big-noturgent':{l:'Big, Not Urgent',c:'#f59e0b',bg:'rgba(245,158,11,0.12)',e:'⭐'},'small-urgent':{l:'Small & Urgent',c:'#3b82f6',bg:'rgba(59,130,246,0.12)',e:'⚡'},'small-noturgent':{l:'Small, Not Urgent',c:'#6b7280',bg:'rgba(107,114,128,0.1)',e:'📋'}};
+
+const S={user:null,token:null,texp:0,screen:'login',workspaces:[],ws:null,tasks:[],groups:['Research','Teaching','Admin','Startup'],people:[],tab:'active',sort:'created',grp:'none',fq:'all',modal:null,editTask:null,expanded:new Set(),atab:'overview'};
+let tcl;
+
+// Utils
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const fmt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+const fmtFull=d=>d?new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+const fmtM=v=>{const n=Number(v);if(!v&&v!==0||isNaN(n))return null;if(n>=1e6)return`฿${(n/1e6).toFixed(1)}M`;if(n>=1e3)return`฿${(n/1e3).toFixed(0)}K`;return`฿${n.toLocaleString()}`;};
+const isOD=d=>d&&new Date(d)<new Date();
+const dleft=d=>{if(!d)return null;return Math.ceil((new Date(d)-new Date())/86400000);};
+const getQ=t=>(t.isBig&&t.isUrgent)?'big-urgent':t.isBig?'big-noturgent':t.isUrgent?'small-urgent':'small-noturgent';
+const pCol=p=>p>=8?'#ef4444':p>=5?'#f59e0b':p>=3?'#3b82f6':'#6b7280';
+const bool=v=>v==='TRUE'||v===true||v==='true';
+const showSync=m=>{const e=document.getElementById('sync'),t=document.getElementById('smsg');if(m){t.textContent=m;e.classList.add('on');}else e.classList.remove('on');};
+const toast=(m,ms=2500)=>{const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),ms);};
+
+const I={
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M12 5v14M5 12h14"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><path d="M20 6L9 17l-5-5"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg>`,
+  close:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
+  sort:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2"/></svg>`,
+  grp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>`,
+  chart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>`,
+  gear:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>`,
+  cal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  tag:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="currentColor"/></svg>`,
+  user:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  exp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>`,
+  logout:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
+  star:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  money:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><path d="M12 6v2m0 8v2m-3-7h4.5a1.5 1.5 0 010 3H9a1.5 1.5 0 000 3H13"/></svg>`,
+  share:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`,
+  back:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>`,
+  ext:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  ref:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>`,
+  ws:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
+};
+
+// ── Auth ─────────────────────────────────────────────────────
+function initAuth(){
+  tcl=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:onToken,
+    error_callback:e=>{const el=document.getElementById('lerr');if(el){el.style.display='block';el.textContent='Sign-in error: '+(e.message||e.type||'Unknown error');}}});
+}
+async function onToken(resp){
+  if(resp.error){console.error(resp);return;}
+  S.token=resp.access_token;S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;
+  try{const r=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${S.token}`}});S.user=await r.json();showWorkspaces();}
+  catch(e){alert('Login error: '+e.message);}
+}
+function signIn(){if(!tcl){initAuth();setTimeout(()=>tcl.requestAccessToken({prompt:'select_account'}),200);}else tcl.requestAccessToken({prompt:'select_account'});}
+function signOut(){if(S.token)try{google.accounts.oauth2.revoke(S.token,()=>{});}catch{}S.token=null;S.user=null;S.ws=null;S.tasks=[];S.workspaces=[];showLogin();}
+async function ensureToken(){if(S.token&&Date.now()<S.texp)return;return new Promise(r=>{tcl.callback=async resp=>{if(!resp.error){S.token=resp.access_token;S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;}r();};tcl.requestAccessToken({prompt:''});});}
+
+// ── Drive API ─────────────────────────────────────────────────
+async function driveReq(path,opts={}){
+  await ensureToken();
+  const r=await fetch('https://www.googleapis.com/drive/v3'+path,{headers:{Authorization:`Bearer ${S.token}`,'Content-Type':'application/json'},...opts});
+  if(r.status===204)return{};
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error?.message||`Drive error ${r.status}`);
+  return data;
+}
+
+async function listWorkspaces(){
+  // Find spreadsheets tagged with our appProperty OR named with [TM] prefix
+  const q=`mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and (appProperties has {key='taskmaster' and value='true'} or name contains '[TM]')`;
+  const fields='files(id,name,owners,modifiedTime,capabilities,shared)';
+  const data=await driveReq(`/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&pageSize=100`);
+  return(data.files||[]).map(f=>({
+    id:f.id,name:f.name.replace(/^\[TM\]\s*/,''),
+    owner:f.owners?.[0]?.displayName||'Unknown',ownerEmail:f.owners?.[0]?.emailAddress||'',
+    isOwner:f.owners?.[0]?.me===true,canEdit:f.capabilities?.canEdit!==false,
+    mod:f.modifiedTime,shared:f.shared,
+  }));
+}
+
+async function createWorkspace(name){
+  await ensureToken();
+  const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets',{method:'POST',
+    headers:{Authorization:`Bearer ${S.token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({properties:{title:`[TM] ${name}`},sheets:[{properties:{title:'Tasks'}},{properties:{title:'Config'}}]})});
+  if(!r.ok)throw new Error('Failed to create spreadsheet');
+  const sheet=await r.json();
+  // Tag with appProperty for future listing
+  await driveReq(`/files/${sheet.spreadsheetId}`,{method:'PATCH',body:JSON.stringify({appProperties:{taskmaster:'true'}})});
+  return sheet.spreadsheetId;
+}
+
+async function deleteWorkspace(id){await driveReq(`/files/${id}`,{method:'DELETE'});}
+
+async function getPermissions(id){
+  const data=await driveReq(`/files/${id}/permissions?fields=permissions(id,role,type,emailAddress,displayName,photoLink,pendingOwner)`);
+  return(data.permissions||[]).filter(p=>p.type==='user');
+}
+async function addEditor(fid,email){
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${fid}/permissions?sendNotificationEmail=true`,{method:'POST',
+    headers:{Authorization:`Bearer ${S.token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({role:'writer',type:'user',emailAddress:email})});
+  const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Failed to share');return data;
+}
+async function removePermission(fid,pid){await driveReq(`/files/${fid}/permissions/${pid}`,{method:'DELETE'});}
+
+// ── Sheets API ────────────────────────────────────────────────
+const SA='https://sheets.googleapis.com/v4/spreadsheets';
+async function sGet(range){await ensureToken();const r=await fetch(`${SA}/${S.ws.id}/values/${encodeURIComponent(range)}`,{headers:{Authorization:`Bearer ${S.token}`}});if(!r.ok)throw new Error(`Sheet read ${r.status}`);return r.json();}
+async function sClear(sh){await ensureToken();await fetch(`${SA}/${S.ws.id}/values/${encodeURIComponent(sh+'!A1:Z9999')}:clear`,{method:'POST',headers:{Authorization:`Bearer ${S.token}`}});}
+async function sWrite(range,vals){await ensureToken();const r=await fetch(`${SA}/${S.ws.id}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${S.token}`,'Content-Type':'application/json'},body:JSON.stringify({values:vals})});if(!r.ok)throw new Error(`Sheet write ${r.status}`);}
+async function clearWrite(sh,vals){await sClear(sh);if(vals.length)await sWrite(`${sh}!A1`,vals);}
+async function initSheets(){try{const c=await sGet('Tasks!A1:A1');if(!c.values)await sWrite('Tasks!A1',[TCOLS]);}catch{await sWrite('Tasks!A1',[TCOLS]);}}
+
+// ── Data ──────────────────────────────────────────────────────
+function r2t(row){const t={};TCOLS.forEach((c,i)=>t[c]=row[i]||'');t.isBig=bool(t.isBig);t.isUrgent=bool(t.isUrgent);t.done=bool(t.done);t.priority=Number(t.priority)||5;t.value=t.value?Number(t.value):'';try{t.assignees=t.assignees?JSON.parse(t.assignees):[]}catch{t.assignees=[];}return t;}
+function t2r(t){return TCOLS.map(c=>{const v=t[c];if(c==='assignees')return JSON.stringify(v||[]);if(['isBig','isUrgent','done'].includes(c))return v?'TRUE':'FALSE';return v??'';});}
+async function loadWsData(){
+  await initSheets();
+  const[tr,cr]=await Promise.all([sGet('Tasks!A1:N9999'),sGet('Config!A1:B10')]);
+  S.tasks=(tr.values||[]).slice(1).filter(r=>r[0]).map(r2t);
+  (cr.values||[]).forEach(row=>{try{if(row[0]==='groups')S.groups=JSON.parse(row[1])||S.groups;if(row[0]==='people')S.people=JSON.parse(row[1])||S.people;}catch{}});
+}
+async function syncTasks(){showSync('Syncing…');try{await clearWrite('Tasks',[TCOLS,...S.tasks.map(t2r)]);}finally{setTimeout(()=>showSync(null),700);}}
+async function syncCfg(){showSync('Saving…');try{await clearWrite('Config',[['groups',JSON.stringify(S.groups)],['people',JSON.stringify(S.people)]]);}finally{setTimeout(()=>showSync(null),600);}}
+
+// ── Task ops ──────────────────────────────────────────────────
+async function createTask(form){const t={...form,id:uid(),done:false,createdAt:new Date().toISOString(),finishedAt:''};S.tasks.unshift(t);renderApp();if(t.group&&!S.groups.includes(t.group)){S.groups.push(t.group);syncCfg();}(t.assignees||[]).forEach(p=>{if(!S.people.includes(p)){S.people.push(p);syncCfg();}});await syncTasks();}
+async function updateTask(id,form){S.tasks=S.tasks.map(t=>t.id===id?{...t,...form}:t);renderApp();if(form.group&&!S.groups.includes(form.group)){S.groups.push(form.group);syncCfg();}(form.assignees||[]).forEach(p=>{if(!S.people.includes(p)){S.people.push(p);syncCfg();}});await syncTasks();}
+async function toggleTask(id){S.tasks=S.tasks.map(t=>t.id!==id?t:{...t,done:!t.done,finishedAt:!t.done?new Date().toISOString():''});renderApp();await syncTasks();}
+async function deleteTask(id){if(!confirm('Delete this task?'))return;S.tasks=S.tasks.filter(t=>t.id!==id);renderApp();await syncTasks();}
+
+// ── CSV Export ────────────────────────────────────────────────
+function exportCSV(){const done=S.tasks.filter(t=>t.done);if(!done.length){alert('No completed tasks.');return;}const h=['Title','Quadrant','Priority','Value(THB)','Group','Assignees','Deadline','Created','Completed','Duration(days)'];const rows=done.map(t=>{const dur=t.createdAt&&t.finishedAt?Math.ceil((new Date(t.finishedAt)-new Date(t.createdAt))/86400000):'';return[`"${t.title}"`,getQ(t),t.priority,t.value||'',t.group||'',(t.assignees||[]).join(';'),t.deadline||'',t.createdAt,t.finishedAt,dur].join(',');});const blob=new Blob([[h.join(','),...rows].join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tasks_${new Date().toISOString().slice(0,10)}.csv`;a.click();}
+
+// ── Time stats ────────────────────────────────────────────────
+function timeBounds(){const n=new Date(),ds=new Date(n.getFullYear(),n.getMonth(),n.getDate()),ws=new Date(ds);ws.setDate(ds.getDate()-((n.getDay()+6)%7));return{ds,ws,ms:new Date(n.getFullYear(),n.getMonth(),1),ys:new Date(n.getFullYear(),0,1)};}
+function cntIn(tasks,field,b){const ts=t=>t[field]?new Date(t[field]):null;return{day:tasks.filter(t=>{const d=ts(t);return d&&d>=b.ds}).length,week:tasks.filter(t=>{const d=ts(t);return d&&d>=b.ws}).length,month:tasks.filter(t=>{const d=ts(t);return d&&d>=b.ms}).length,year:tasks.filter(t=>{const d=ts(t);return d&&d>=b.ys}).length};}
+
+// ════════════════════════════════════════════════════════════════
+// SCREENS
+// ════════════════════════════════════════════════════════════════
+function showLogin(){
+  document.getElementById('root').innerHTML=`<div id="login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;background:radial-gradient(ellipse at 50% 0%,rgba(99,102,241,0.18) 0%,transparent 65%)">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="32" height="32"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+    <h1 class="dp" style="font-size:34px">Task<span style="color:#818cf8">Master</span></h1>
+    <p style="color:var(--m);margin-top:9px;font-size:15px;line-height:1.7">Your tasks, your sheets.<br>Share with anyone.</p>
+    <button class="gbtn" onclick="signIn()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <p id="lerr" style="color:var(--r);font-size:13px;margin-top:14px;display:none"></p>
+  </div>`;}
+
+// ── Workspace Screen ──────────────────────────────────────────
+async function showWorkspaces(){
+  S.screen='workspaces';S.modal=null;
+  document.getElementById('root').innerHTML=`<div id="wss">
+    <div class="wsh">
+      <div><h1 class="dp" style="font-size:22px">Task<span style="color:#818cf8">Master</span></h1><p style="font-size:12px;color:var(--d)">Select a workspace</p></div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <button class="btn bg" onclick="refreshWS()" title="Refresh">${I.ref}</button>
+        ${S.user?.picture?`<img class="av" src="${esc(S.user.picture)}" referrerpolicy="no-referrer">`:`<div class="avf">${(S.user?.name||'U')[0]}</div>`}
+        <button class="btn bg" onclick="signOut()" title="Sign out" style="padding:8px">${I.logout}</button>
+      </div>
+    </div>
+    <button class="btn bp" onclick="toggleNWF()" id="new-ws-btn" style="margin-bottom:12px">${I.plus} New Workspace</button>
+    <div class="nwf" id="nwf">
+      <div class="fg"><div class="fl">Workspace Name</div><input id="wni" placeholder="e.g. My Tasks, PhD Project, Startup 2025…" maxlength="60"></div>
+      <div style="display:flex;gap:8px"><button class="btn bp" onclick="doCreateWs()" style="flex:1">Create</button><button class="btn bg" onclick="toggleNWF()" style="padding:14px">Cancel</button></div>
+    </div>
+    <div id="wsl"><div style="text-align:center;padding:40px;color:var(--m)"><span class="spin">⟳</span><br><br>Loading workspaces…</div></div>
+    <div id="wsm"></div>
+  </div>`;
+  await refreshWS();
+}
+
+async function refreshWS(){
+  document.getElementById('wsl').innerHTML=`<div style="text-align:center;padding:30px;color:var(--m)"><span class="spin">⟳</span></div>`;
+  try{S.workspaces=await listWorkspaces();renderWSList();}
+  catch(e){document.getElementById('wsl').innerHTML=`<div style="color:var(--r);padding:20px;text-align:center;font-size:13px">Error loading workspaces:<br>${esc(e.message)}</div>`;}
+}
+
+function renderWSList(){
+  const el=document.getElementById('wsl');if(!el)return;
+  if(!S.workspaces.length){el.innerHTML=`<div style="text-align:center;padding:50px 0;color:var(--m)"><div style="font-size:36px;margin-bottom:12px">📋</div><p>No workspaces yet.<br>Create one above to get started.</p></div>`;return;}
+  const own=S.workspaces.filter(w=>w.isOwner),shr=S.workspaces.filter(w=>!w.isOwner);
+  let h='';
+  if(own.length){h+=`<div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">My Workspaces</div>`;h+=own.map(wsCard).join('');}
+  if(shr.length){h+=`<div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px">Shared With Me</div>`;h+=shr.map(wsCard).join('');}
+  el.innerHTML=h;
+}
+
+function wsCard(w){
+  const mod=w.mod?new Date(w.mod).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}):'';
+  return`<div class="wsc ${w.isOwner?'own':'shr'}">
+    <div class="wsc-h"><div class="wsc-n">${esc(w.name)}</div><span class="wsbdg" style="${w.isOwner?'background:var(--ab);color:var(--al)':'background:var(--gb);color:#6ee7b7'}">${w.isOwner?'Owner':'Shared'}</span></div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:3px">${w.isOwner?'Owned by you':'Shared by '+esc(w.owner)}</div>
+    ${mod?`<div style="font-size:12px;color:var(--d)">Modified ${mod}</div>`:''}
+    <div class="wsac" onclick="event.stopPropagation()">
+      <button class="wsb" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff" onclick="openWS('${esc(w.id)}')">Open</button>
+      ${w.isOwner?`
+      <button class="wsb" style="background:var(--gb);color:#6ee7b7;border:1px solid rgba(52,211,153,0.3)" onclick="openShareModal('${esc(w.id)}','${esc(w.name)}')">${I.share} Share</button>
+      <button class="wsb" style="background:var(--rb);color:var(--r);border:1px solid rgba(239,68,68,0.25);flex:0;padding:8px 10px" onclick="doDelWs('${esc(w.id)}','${esc(w.name)}')">${I.trash}</button>`
+      :`<button class="wsb" style="background:rgba(255,255,255,0.05);color:var(--m)" onclick="window.open('https://docs.google.com/spreadsheets/d/${esc(w.id)}','_blank')">${I.ext} Open Sheet</button>`}
+    </div>
+  </div>`;
+}
+
+function toggleNWF(){const f=document.getElementById('nwf');f.classList.toggle('on');if(f.classList.contains('on'))setTimeout(()=>document.getElementById('wni')?.focus(),80);}
+
+async function doCreateWs(){
+  const name=document.getElementById('wni')?.value.trim();if(!name){alert('Please enter a workspace name.');return;}
+  showSync('Creating…');
+  try{const id=await createWorkspace(name);toast('✓ Workspace created!');await openWS(id);}
+  catch(e){alert('Error: '+e.message);}finally{showSync(null);}
+}
+
+async function doDelWs(id,name){
+  if(!confirm(`Delete "${name}"?\n\nThis permanently deletes the Google Spreadsheet and ALL tasks inside it.`))return;
+  showSync('Deleting…');
+  try{await deleteWorkspace(id);S.workspaces=S.workspaces.filter(w=>w.id!==id);renderWSList();toast('Workspace deleted');}
+  catch(e){alert('Error: '+e.message);}finally{showSync(null);}
+}
+
+// ── Share Modal ───────────────────────────────────────────────
+async function openShareModal(id,name){
+  const modal=document.getElementById('wsm')||document.getElementById('modal-area');if(!modal)return;
+  modal.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeMod()"><div class="sheet"><div class="hdl"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h2 class="dp" style="font-size:20px">${I.share} Share</h2><button class="btn bg" onclick="closeMod()">${I.close}</button></div>
+    <p style="font-size:13px;color:var(--m);margin-bottom:16px">Workspace: <strong style="color:var(--t)">${esc(name)}</strong></p>
+    <div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Invite by Email</div>
+    <div style="display:flex;gap:8px;margin-bottom:18px"><input id="sem" type="email" placeholder="colleague@example.com" style="flex:1"><button class="btn bp" style="width:auto;padding:12px 16px;white-space:nowrap" onclick="doShare('${esc(id)}')">Invite</button></div>
+    <div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Current Access</div>
+    <div id="plist"><span style="font-size:13px;color:var(--m)">Loading…</span></div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+      <button class="btn" style="width:100%;background:rgba(255,255,255,0.05);color:var(--m);padding:12px;font-size:13px" onclick="window.open('https://docs.google.com/spreadsheets/d/${esc(id)}','_blank')">${I.ext} Manage sharing in Google Sheets</button>
+    </div>
+  </div></div>`;
+  await loadPerms(id);
+}
+
+async function loadPerms(id){
+  const list=document.getElementById('plist');if(!list)return;
+  try{
+    const perms=await getPermissions(id);
+    if(!perms.length){list.innerHTML=`<p style="font-size:13px;color:var(--m)">Only you have access.</p>`;return;}
+    list.innerHTML=perms.map(p=>`<div class="sur">
+      ${p.photoLink?`<img src="${p.photoLink}" class="av">`:`<div class="avf">${(p.displayName||p.emailAddress||'?')[0].toUpperCase()}</div>`}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(p.displayName||'')}</div><div style="font-size:12px;color:var(--m)">${esc(p.emailAddress||'')} · ${p.role}</div></div>
+      ${p.role!=='owner'?`<button class="btn" style="background:var(--rb);color:var(--r);padding:7px 10px;font-size:12px" onclick="doRemPerms('${esc(id)}','${esc(p.id)}')">${I.trash}</button>`:'<span style="font-size:11px;color:var(--d)">owner</span>'}
+    </div>`).join('');
+  }catch{list.innerHTML=`<p style="font-size:13px;color:var(--r)">Could not load permissions.</p>`;}
+}
+
+async function doShare(id){
+  const email=document.getElementById('sem')?.value.trim();if(!email||!email.includes('@')){alert('Enter a valid email.');return;}
+  showSync('Sharing…');
+  try{await addEditor(id,email);document.getElementById('sem').value='';await loadPerms(id);toast(`✓ Shared with ${email}`);}
+  catch(e){alert('Error: '+e.message);}finally{showSync(null);}
+}
+async function doRemPerms(fid,pid){
+  if(!confirm('Remove this person\'s access?'))return;
+  showSync('Removing…');
+  try{await removePermission(fid,pid);await loadPerms(fid);toast('Access removed');}
+  catch(e){alert('Error: '+e.message);}finally{showSync(null);}
+}
+function closeMod(){const m=document.getElementById('wsm')||document.getElementById('modal-area');if(m)m.innerHTML='';S.modal=null;}
+
+// ── Open Workspace ────────────────────────────────────────────
+async function openWS(id){
+  S.ws=S.workspaces.find(w=>w.id===id)||{id,name:'Workspace',isOwner:false};
+  document.getElementById('root').innerHTML=`<div style="text-align:center;padding:60px 0;color:var(--m)"><span class="spin" style="font-size:22px">⟳</span><br><br>Loading workspace…</div>`;
+  showSync('Loading tasks…');
+  try{S.tasks=[];S.groups=['Research','Teaching','Admin','Startup'];S.people=[];await loadWsData();S.screen='app';renderApp();}
+  catch(e){alert('Error loading: '+e.message);showWorkspaces();}finally{showSync(null);}
+}
+
+// ════════════════════════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════════════════════════
+function renderApp(){
+  const done=S.tasks.filter(t=>t.done),active=S.tasks.filter(t=>!t.done),od=active.filter(t=>isOD(t.deadline));
+  const av=S.user?.picture?`<img class="av" src="${esc(S.user.picture)}" referrerpolicy="no-referrer" onclick="openSettings()" style="cursor:pointer">`:`<div class="avf" onclick="openSettings()" style="cursor:pointer">${(S.user?.name||'U')[0]}</div>`;
+  document.getElementById('root').innerHTML=`
+  <div id="wsbar" onclick="showWorkspaces()">
+    <div style="width:8px;height:8px;border-radius:50%;background:${S.ws?.isOwner?'var(--al)':'var(--g)'};flex-shrink:0"></div>
+    <span style="font-size:12px;font-weight:600;color:var(--m);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.ws?.name||'Workspace')}</span>
+    <span style="font-size:11px;color:var(--d)">${I.ws} Switch</span>
+  </div>
+  <div id="hdr">
+    <div class="htop">
+      <div><h1 class="dp" style="font-size:22px">Task<span style="color:#818cf8">Master</span></h1>
+        <p style="font-size:12px;color:var(--d)">${active.length} active${od.length?` <span style="color:var(--r)">· ${od.length} overdue</span>`:''}</p>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn bg" onclick="openAnalytics()">${I.chart}</button>
+        <button class="btn bg" onclick="openSettings()">${I.gear}</button>
+        ${av}
+        <button class="btn" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px;border-radius:12px" onclick="openNewTask()">${I.plus}</button>
+      </div>
+    </div>
+    <div class="tabs">${['active','done'].map(v=>`<button class="tab ${S.tab===v?'on':''}" onclick="setTab('${v}')">${v==='active'?'Active':'Done'}<span class="tbdg">${v==='active'?active.length:done.length}</span></button>`).join('')}</div>
+    <div class="fr">
+      <span class="fp ${S.fq==='all'?'ca':''}" onclick="setFq('all')">All</span>
+      ${Object.entries(QD).map(([k,v])=>`<span class="fp" style="${S.fq===k?`background:${v.bg};border-color:${v.c};color:${v.c}`:''}" onclick="setFq('${k}')">${v.e} ${v.l}</span>`).join('')}
+    </div>
+    <div class="cr">
+      <div class="cb">${I.sort}<select onchange="setSort(this.value)">${['created','deadline','priority','value'].map(v=>`<option value="${v}" ${S.sort===v?'selected':''}>Sort: ${v==='created'?'Created':v==='deadline'?'Deadline':v==='priority'?'Priority':'Value ฿'}</option>`).join('')}</select></div>
+      <div class="cb">${I.grp}<select onchange="setGrp(this.value)">${['none','quadrant','group','assignee'].map(v=>`<option value="${v}" ${S.grp===v?'selected':''}>Group: ${v==='none'?'None':v==='quadrant'?'Quadrant':v==='group'?'Tag':'Person'}</option>`).join('')}</select></div>
+    </div>
+  </div>
+  <div style="padding:10px 14px 80px">${renderList()}</div>
+  <div id="modal-area"></div>`;
+  if(S.modal==='form')renderForm();
+  if(S.modal==='analytics')renderAnalytics();
+  if(S.modal==='settings')renderSettings();
+}
+
+function getDisp(){
+  let l=S.tasks.filter(t=>S.tab==='done'?t.done:!t.done);
+  if(S.fq!=='all')l=l.filter(t=>getQ(t)===S.fq);
+  l=[...l].sort((a,b)=>{if(S.sort==='deadline'){if(!a.deadline&&!b.deadline)return 0;if(!a.deadline)return 1;if(!b.deadline)return-1;return new Date(a.deadline)-new Date(b.deadline);}if(S.sort==='priority')return b.priority-a.priority;if(S.sort==='value')return(Number(b.value)||0)-(Number(a.value)||0);return new Date(b.createdAt)-new Date(a.createdAt);});
+  return l;
+}
+function getGrouped(d){
+  if(S.grp==='none')return[{k:'all',label:null,c:null,items:d}];
+  if(S.grp==='quadrant')return Object.entries(QD).map(([k,v])=>({k,label:`${v.e} ${v.l}`,c:v.c,items:d.filter(t=>getQ(t)===k)})).filter(g=>g.items.length);
+  if(S.grp==='group'){const gs=[...new Set(d.map(t=>t.group||'(No Group)'))];return gs.map(g=>({k:g,label:`🏷 ${g}`,c:null,items:d.filter(t=>(t.group||'(No Group)')===g)}));}
+  if(S.grp==='assignee'){const ps=[...new Set(d.flatMap(t=>t.assignees?.length?t.assignees:['(Unassigned)']))];return ps.map(p=>({k:p,label:`👤 ${p}`,c:null,items:d.filter(t=>p==='(Unassigned)'?!t.assignees?.length:t.assignees?.includes(p))}));}
+  return[{k:'all',label:null,c:null,items:d}];
+}
+function renderList(){
+  const d=getDisp();
+  if(!d.length)return`<div style="text-align:center;padding:60px 0"><div style="font-size:38px;margin-bottom:12px">${S.tab==='done'?'🎉':'📋'}</div><p style="color:var(--m);font-size:14px">${S.tab==='done'?'No completed tasks yet.':'No tasks here. Add one!'}</p></div>`;
+  return getGrouped(d).map(g=>{const tv=g.items.reduce((s,t)=>s+(Number(t.value)||0),0);return`${g.label?`<div class="gh"><span class="gl" style="${g.c?`color:${g.c}`:''}">${esc(g.label)}</span><span style="font-size:12px;color:var(--d)">(${g.items.length})</span>${tv>0?`<span style="font-size:12px;font-weight:700;color:var(--g)">${fmtM(tv)}</span>`:''}<div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div></div>`:''}${g.items.map(t=>renderCard(t)).join('')}`;}).join('');
+}
+function renderCard(t){
+  const q=QD[getQ(t)],dl=dleft(t.deadline),od=!t.done&&isOD(t.deadline),isE=S.expanded.has(t.id);
+  const dll=od?`Overdue ${fmt(t.deadline)}`:dl===0?'Today!':dl===1?'Tomorrow':dl&&dl>0?`${dl}d left`:fmt(t.deadline);
+  const mv=fmtM(t.value);
+  return`<div class="tc ${od?'od':''} ${t.done?'dn':''}" id="tc-${t.id}">
+    <div class="tt">
+      <div class="cbx ${t.done?'on':''}" onclick="toggleTask('${t.id}')">${t.done?I.check:''}</div>
+      <div class="tb" onclick="toggleExp('${t.id}')">
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;background:${q.bg};color:${q.c};border:1px solid ${q.c}40">${q.e} ${q.l}</span>
+          <span style="font-size:12px;font-weight:700;color:${pCol(t.priority)}">P${t.priority}</span>
+          ${mv?`<span style="font-size:12px;font-weight:700;color:var(--g)">💰 ${mv}</span>`:''}
+        </div>
+        <div style="font-size:14px;font-weight:600;line-height:1.4${t.done?';text-decoration:line-through;opacity:.5':''}">${esc(t.title)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:5px">
+          ${t.deadline?`<span class="mi ${od?'od':''}">${I.cal} ${dll}</span>`:''}
+          ${t.group?`<span class="mi" style="color:#818cf8">${I.tag} ${esc(t.group)}</span>`:''}
+          ${t.assignees?.length?`<span class="mi" style="color:var(--g)">${I.user} ${esc(t.assignees.join(', '))}</span>`:''}
+        </div>
+      </div>
+      <div class="ta"><button onclick="openEditTask('${t.id}')">${I.edit}</button><button class="dl" onclick="deleteTask('${t.id}')">${I.trash}</button></div>
+    </div>
+    <div class="tx ${isE?'on':''}">
+      ${t.description?`<p style="color:#d1d5db;margin-bottom:7px">${esc(t.description)}</p>`:''}
+      ${mv?`<p>Value: <strong style="color:var(--g)">${mv}</strong></p>`:''}
+      <p>Created: ${fmtFull(t.createdAt)}</p>
+      ${t.done?`<p style="color:var(--g)">✓ Done: ${fmtFull(t.finishedAt)}</p>`:''}
+    </div>
+  </div>`;
+}
+
+// ── Form ──────────────────────────────────────────────────────
+function openNewTask(){S.editTask=null;S.modal='form';renderForm();}
+function openEditTask(id){S.editTask=S.tasks.find(t=>t.id===id)||null;S.modal='form';renderForm();}
+function closeModal(){S.modal=null;S.editTask=null;const m=document.getElementById('modal-area');if(m)m.innerHTML='';}
+function renderForm(){
+  const t=S.editTask||{},v={title:t.title||'',description:t.description||'',isBig:t.isBig||false,isUrgent:t.isUrgent||false,priority:t.priority||5,value:t.value||'',deadline:t.deadline||'',assignees:t.assignees||[],group:t.group||''};
+  document.getElementById('modal-area').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="hdl"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:17px"><h2 class="dp" style="font-size:20px">${S.editTask?'Edit Task':'New Task'}</h2><button class="btn bg" onclick="closeModal()">${I.close}</button></div>
+    <div class="fg"><div class="fl">Task Title *</div><input id="ft" value="${esc(v.title)}" placeholder="What needs to be done?"></div>
+    <div class="fg"><div class="fl">Description</div><textarea id="fd" rows="2" placeholder="Details…">${esc(v.description)}</textarea></div>
+    <div class="fg tg">
+      <button class="tbtn" id="tbb" onclick="fTog('isBig')" style="${v.isBig?'background:rgba(245,158,11,0.18);border-color:#f59e0b':''}"><div class="tl">⭐ Big Task</div><div class="ts">Important / high impact</div></button>
+      <button class="tbtn" id="tbu" onclick="fTog('isUrgent')" style="${v.isUrgent?'background:rgba(239,68,68,0.18);border-color:#ef4444':''}"><div class="tl">🔥 Urgent</div><div class="ts">Time-sensitive</div></button>
+    </div>
+    <div class="fg"><div class="fl">${I.star} Priority: <strong id="pv" style="color:${pCol(v.priority)};margin-left:4px">${v.priority}</strong></div>
+      <input type="range" min="1" max="10" value="${v.priority}" id="fp" style="accent-color:#8b5cf6" oninput="document.getElementById('pv').textContent=this.value">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--d);margin-top:4px"><span>Low (1)</span><span>High (10)</span></div>
+    </div>
+    <div class="fg"><div class="fl">${I.money} Task Value (THB)</div>
+      <div class="vw"><span class="vpx">฿</span><input type="number" id="fv" value="${v.value||''}" placeholder="e.g. 50000" min="0" step="100" oninput="updVP(this.value)"><span class="vpv" id="vpr">${v.value?fmtM(v.value)||'':''}</span></div>
+      <div class="prs">${[1000,5000,10000,50000,100000].map(p=>`<button class="prb ${Number(v.value)===p?'on':''}" onclick="setVP(${p})">${fmtM(p)}</button>`).join('')}</div>
+    </div>
+    <div class="fg"><div class="fl">${I.cal} Deadline</div><input type="datetime-local" id="fdl" value="${v.deadline?v.deadline.slice(0,16):''}"></div>
+    <div class="fg"><div class="fl">${I.tag} Group</div>
+      <div class="cr2" id="gch">${S.groups.map(g=>`<span class="chip ${v.group===g?'ca':''}" onclick="selG('${esc(g)}')">${esc(g)}</span>`).join('')}</div>
+      <div class="ar"><input id="ng" placeholder="New group…"><button class="ab" style="background:var(--ab);color:var(--al)" onclick="addGF()">+ Add</button></div>
+    </div>
+    <div class="fg"><div class="fl">${I.user} Assignees</div>
+      <div class="cr2" id="ach">${S.people.map(p=>`<span class="chip ${v.assignees.includes(p)?'cg':''}" onclick="togA('${esc(p)}')">${esc(p)}</span>`).join('')}</div>
+      <div class="ar"><input id="np" placeholder="New person…"><button class="ab" style="background:var(--gb);color:#6ee7b7" onclick="addPF()">+ Add</button></div>
+    </div>
+    <button class="btn bp" onclick="subForm()">${S.editTask?'Save Changes':'Create Task'}</button>
+  </div></div>`;
+  window._fs={isBig:v.isBig,isUrgent:v.isUrgent,assignees:[...v.assignees],group:v.group};
+}
+function fTog(k){const fs=window._fs;fs[k]=!fs[k];const iB=k==='isBig',val=fs[k];const b=document.getElementById(k==='isBig'?'tbb':'tbu');b.style.background=val?(iB?'rgba(245,158,11,0.18)':'rgba(239,68,68,0.18)'):'rgba(255,255,255,0.05)';b.style.borderColor=val?(iB?'#f59e0b':'#ef4444'):'rgba(255,255,255,0.1)';}
+function updVP(v){const p=document.getElementById('vpr');p.textContent=fmtM(v)||'';document.querySelectorAll('.prb').forEach((b,i)=>b.classList.toggle('on',Number(v)===[1000,5000,10000,50000,100000][i]));}
+function setVP(v){document.getElementById('fv').value=v;updVP(v);}
+function selG(g){window._fs.group=window._fs.group===g?'':g;document.querySelectorAll('#gch .chip').forEach(el=>el.classList.toggle('ca',el.textContent===g&&window._fs.group===g));}
+function addGF(){const i=document.getElementById('ng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g))S.groups.push(g);window._fs.group=g;i.value='';document.getElementById('gch').innerHTML=S.groups.map(gr=>`<span class="chip ${window._fs.group===gr?'ca':''}" onclick="selG('${esc(gr)}')">${esc(gr)}</span>`).join('');}
+function togA(p){const fs=window._fs;fs.assignees=fs.assignees.includes(p)?fs.assignees.filter(x=>x!==p):[...fs.assignees,p];document.querySelectorAll('#ach .chip').forEach(el=>el.classList.toggle('cg',fs.assignees.includes(el.textContent)));}
+function addPF(){const i=document.getElementById('np'),p=i.value.trim();if(!p)return;if(!S.people.includes(p))S.people.push(p);togA(p);i.value='';document.getElementById('ach').innerHTML=S.people.map(pe=>`<span class="chip ${window._fs.assignees.includes(pe)?'cg':''}" onclick="togA('${esc(pe)}')">${esc(pe)}</span>`).join('');}
+async function subForm(){
+  const title=document.getElementById('ft').value.trim();if(!title){alert('Title required.');return;}
+  const dl=document.getElementById('fdl').value;
+  const form={title,description:document.getElementById('fd').value,isBig:window._fs.isBig,isUrgent:window._fs.isUrgent,priority:Number(document.getElementById('fp').value),value:document.getElementById('fv').value||'',deadline:dl?new Date(dl).toISOString():'',assignees:window._fs.assignees,group:window._fs.group,notes:''};
+  closeModal();if(S.editTask)await updateTask(S.editTask.id,form);else await createTask(form);
+}
+
+// ── Analytics ─────────────────────────────────────────────────
+function openAnalytics(){S.modal='analytics';renderAnalytics();}
+function switchAtab(t){S.atab=t;renderAnalytics();}
+function renderAnalytics(){
+  const done=S.tasks.filter(t=>t.done),tot=S.tasks.length,od=S.tasks.filter(t=>!t.done&&isOD(t.deadline)).length;
+  const avg=done.length?(done.filter(t=>t.createdAt&&t.finishedAt).reduce((s,t)=>s+Math.ceil((new Date(t.finishedAt)-new Date(t.createdAt))/86400000),0)/Math.max(1,done.filter(t=>t.createdAt&&t.finishedAt).length)).toFixed(1):'—';
+  const b=timeBounds(),add=cntIn(S.tasks,'createdAt',b),comp=cntIn(done,'finishedAt',b);
+  const tv=S.tasks.reduce((s,t)=>s+(Number(t.value)||0),0),dv=done.reduce((s,t)=>s+(Number(t.value)||0),0),pv=S.tasks.filter(t=>!t.done).reduce((s,t)=>s+(Number(t.value)||0),0);
+  const pr=[{k:'day',l:'Today',i:'☀️'},{k:'week',l:'This Week',i:'📅'},{k:'month',l:'This Month',i:'🗓'},{k:'year',l:'This Year',i:'📆'}];
+  const byQ=Object.entries(QD).map(([q,v])=>({q,v,t:S.tasks.filter(t=>getQ(t)===q).length,d:done.filter(t=>getQ(t)===q).length}));
+  let body='';
+  if(S.atab==='overview')body=`
+    <div class="sg c3"><div class="sb"><div class="sv" style="color:#a78bfa">${tot}</div><div class="sl">Total</div></div><div class="sb"><div class="sv" style="color:var(--g)">${done.length}</div><div class="sl">Done</div></div><div class="sb"><div class="sv" style="color:#f87171">${od}</div><div class="sl">Overdue</div></div></div>
+    <div class="sg c2" style="margin-bottom:12px"><div class="sb"><div class="sl">Avg completion</div><div class="sv" style="font-size:19px">${avg}<span style="font-size:13px;color:var(--m)"> days</span></div></div><div class="sb"><div class="sl">Completion rate</div><div class="sv" style="font-size:19px">${tot?Math.round(done.length/tot*100):0}<span style="font-size:13px;color:var(--m)">%</span></div></div></div>
+    ${tv>0?`<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:16px;padding:13px;margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.06em;margin-bottom:11px">💰 Task Value</div><div class="sg c3" style="margin-bottom:10px">${[{l:'Total',v:fmtM(tv),c:'#a78bfa'},{l:'Done',v:fmtM(dv),c:'var(--g)'},{l:'Pending',v:fmtM(pv),c:'#fbbf24'}].map(s=>`<div style="text-align:center"><div style="font-size:14px;font-weight:700;color:${s.c};font-family:var(--fd)">${s.v||'฿0'}</div><div style="font-size:11px;color:var(--m);margin-top:3px">${s.l}</div></div>`).join('')}</div><div style="font-size:11px;color:var(--m);margin-bottom:4px">Value completion: <strong style="color:var(--g)">${Math.round(dv/tv*100)}%</strong></div><div class="pb"><div class="pf" style="width:${dv/tv*100}%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div></div>`:''}
+    <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:16px;padding:13px"><div style="font-size:11px;font-weight:700;color:var(--al);text-transform:uppercase;letter-spacing:.06em;margin-bottom:11px">Today's Snapshot</div><div class="sg c2"><div style="text-align:center"><div style="font-size:26px;font-weight:700;color:var(--al);font-family:var(--fd)">${add.day}</div><div style="font-size:12px;color:var(--m)">Added today</div></div><div style="text-align:center"><div style="font-size:26px;font-weight:700;color:var(--g);font-family:var(--fd)">${comp.day}</div><div style="font-size:12px;color:var(--m)">Done today</div></div></div></div>`;
+  if(S.atab==='activity')body=`
+    <div style="margin-bottom:16px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:9px"><div style="width:7px;height:7px;border-radius:50%;background:var(--al)"></div><span style="font-size:11px;font-weight:700;color:var(--al);text-transform:uppercase;letter-spacing:.06em">Tasks Added</span></div>
+    ${pr.map(p=>`<div class="ar2"><div class="art"><span style="font-size:13px;color:#d1d5db">${p.i} ${p.l}</span><span style="font-size:17px;font-weight:700;color:var(--al);font-family:var(--fd)">${add[p.k]}</span></div><div class="pb"><div class="pf" style="width:${add.year?add[p.k]/add.year*100:0}%;background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div></div>`).join('')}</div>
+    <div style="margin-bottom:16px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:9px"><div style="width:7px;height:7px;border-radius:50%;background:var(--g)"></div><span style="font-size:11px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.06em">Tasks Completed</span></div>
+    ${pr.map(p=>`<div class="ar2"><div class="art"><span style="font-size:13px;color:#d1d5db">${p.i} ${p.l}</span><span style="font-size:17px;font-weight:700;color:var(--g);font-family:var(--fd)">${comp[p.k]}</span></div><div class="pb"><div class="pf" style="width:${comp.year?comp[p.k]/comp.year*100:0}%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div></div>`).join('')}</div>
+    <div class="ct"><div class="cth"><span>Period</span><span style="text-align:center;color:var(--al)">Added</span><span style="text-align:center;color:var(--g)">Done</span></div>${pr.map(p=>`<div class="ctr"><span style="color:#d1d5db">${p.i} ${p.l}</span><span style="text-align:center;font-weight:700;color:var(--al)">${add[p.k]}</span><span style="text-align:center;font-weight:700;color:var(--g)">${comp[p.k]}</span></div>`).join('')}</div>`;
+  if(S.atab==='quadrant')body=`<div>${byQ.map(({q,v,t,d})=>`<div style="background:${v.bg};border:1px solid ${v.c}30;border-radius:16px;padding:13px;margin-bottom:9px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-size:13px;font-weight:600;color:${v.c}">${v.e} ${v.l}</span><div><span style="font-size:17px;font-weight:700;color:#fff;font-family:var(--fd)">${d}</span><span style="font-size:12px;color:var(--m)">/${t}</span></div></div><div class="pb"><div class="pf" style="width:${t?d/t*100:0}%;background:${v.c}"></div></div><div style="font-size:11px;color:var(--m);margin-top:5px">${t?Math.round(d/t*100):0}% complete${t-d>0?` · ${t-d} remaining`:''}</div></div>`).join('')}</div>`;
+  document.getElementById('modal-area').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="hdl"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px"><h2 class="dp" style="font-size:20px">Analytics</h2><button class="btn bg" onclick="closeModal()">${I.close}</button></div><div class="at">${['overview','activity','quadrant'].map(t=>`<button class="atb ${S.atab===t?'on':''}" onclick="switchAtab('${t}')">${t==='overview'?'Overview':t==='activity'?'Activity':'Quadrant'}</button>`).join('')}</div><div style="overflow-y:auto;max-height:calc(85vh - 130px)">${body}<button class="btn bp" style="margin-top:13px" onclick="exportCSV()">${I.exp} Export CSV</button></div></div></div>`;
+}
+
+// ── Settings ──────────────────────────────────────────────────
+function openSettings(){S.modal='settings';renderSettings();}
+function renderSettings(){
+  document.getElementById('modal-area').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="hdl"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:17px"><h2 class="dp" style="font-size:20px">Settings</h2><button class="btn bg" onclick="closeModal()">${I.close}</button></div>
+    ${S.user?`<div style="display:flex;align-items:center;gap:11px;padding:13px;background:rgba(255,255,255,0.05);border-radius:16px;margin-bottom:17px">${S.user.picture?`<img class="av" src="${esc(S.user.picture)}" referrerpolicy="no-referrer" style="width:42px;height:42px">`:`<div class="avf" style="width:42px;height:42px">${(S.user.name||'U')[0]}</div>`}<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">${esc(S.user.name||'')}</div><div style="font-size:12px;color:var(--m)">${esc(S.user.email||'')}</div></div><button class="btn bg" onclick="signOut()" title="Sign out">${I.logout}</button></div>`:''}
+    <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:16px;padding:13px;margin-bottom:17px">
+      <div style="font-size:11px;font-weight:700;color:var(--al);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Current Workspace</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">${esc(S.ws?.name||'')}</div>
+      <div style="font-size:12px;color:var(--m);margin-bottom:11px">${S.ws?.isOwner?'You are the owner':'Shared with you by '+esc(S.ws?.owner||'')}</div>
+      <div style="display:flex;gap:7px">
+        <button class="btn" style="flex:1;background:rgba(255,255,255,0.06);color:var(--m);padding:9px;font-size:12px" onclick="closeModal();showWorkspaces()">Switch Workspace</button>
+        ${S.ws?.isOwner?`<button class="btn" style="flex:1;background:var(--gb);color:#6ee7b7;padding:9px;font-size:12px;border:1px solid rgba(52,211,153,0.3)" onclick="closeModal();openShareModal('${esc(S.ws?.id||'')}','${esc(S.ws?.name||'')}')">${I.share} Share</button>`:''}
+        <button class="btn bg" style="padding:9px" onclick="window.open('https://docs.google.com/spreadsheets/d/${esc(S.ws?.id||'')}','_blank')" title="Open in Sheets">${I.ext}</button>
+      </div>
+    </div>
+    <div style="margin-bottom:17px"><div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Groups</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px" id="sg">${S.groups.map(g=>`<span class="chip ca">${esc(g)} <span onclick="rmG('${esc(g)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('')}</div>
+      <div class="ar"><input id="sng" placeholder="Add group…" style="font-size:13px"><button class="ab" style="background:var(--ab);color:var(--al)" onclick="addGS()">Add</button></div>
+    </div>
+    <div style="margin-bottom:17px"><div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">People</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px" id="sp">${S.people.map(p=>`<span class="chip cg">${esc(p)} <span onclick="rmP('${esc(p)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('')}</div>
+      <div class="ar"><input id="snp" placeholder="Add person…" style="font-size:13px"><button class="ab" style="background:var(--gb);color:#6ee7b7" onclick="addPS()">Add</button></div>
+    </div>
+  </div></div>`;
+}
+async function rmG(g){S.groups=S.groups.filter(x=>x!==g);document.getElementById('sg').innerHTML=S.groups.map(g=>`<span class="chip ca">${esc(g)} <span onclick="rmG('${esc(g)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('');await syncCfg();}
+async function addGS(){const i=document.getElementById('sng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g))S.groups.push(g);i.value='';renderSettings();await syncCfg();}
+async function rmP(p){S.people=S.people.filter(x=>x!==p);document.getElementById('sp').innerHTML=S.people.map(p=>`<span class="chip cg">${esc(p)} <span onclick="rmP('${esc(p)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('');await syncCfg();}
+async function addPS(){const i=document.getElementById('snp'),p=i.value.trim();if(!p)return;if(!S.people.includes(p))S.people.push(p);i.value='';renderSettings();await syncCfg();}
+
+// Controls
+function setTab(v){S.tab=v;S.expanded.clear();renderApp();}
+function setFq(v){S.fq=v;renderApp();}
+function setSort(v){S.sort=v;renderApp();}
+function setGrp(v){S.grp=v;renderApp();}
+function toggleExp(id){if(S.expanded.has(id))S.expanded.delete(id);else S.expanded.add(id);const el=document.querySelector(`#tc-${id} .tx`);if(el)el.classList.toggle('on',S.expanded.has(id));}
+
+// Init
+window.addEventListener('load',()=>{showLogin();const w=setInterval(()=>{if(window.google?.accounts?.oauth2){clearInterval(w);initAuth();}},100);});
+</script>
+</body>
+</html>
