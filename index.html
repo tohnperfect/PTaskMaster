@@ -583,7 +583,7 @@ async function subForm(){
   const title=document.getElementById('ft').value.trim();if(!title){alert('Title required.');return;}
   const dl=document.getElementById('fdl').value;
   const form={title,description:document.getElementById('fd').value,isBig:window._fs.isBig,isUrgent:window._fs.isUrgent,priority:Number(document.getElementById('fp').value),value:document.getElementById('fv').value||'',deadline:dl?new Date(dl).toISOString():'',assignees:window._fs.assignees,group:window._fs.group,notes:''};
-  closeModal();if(S.editTask)await updateTask(S.editTask.id,form);else await createTask(form);
+  const editId=S.editTask?.id;closeModal();if(editId)await updateTask(editId,form);else await createTask(form);
 }
 
 // ── Analytics ─────────────────────────────────────────────────
