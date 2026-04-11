@@ -576,9 +576,9 @@ function fTog(k){const fs=window._fs;fs[k]=!fs[k];const iB=k==='isBig',val=fs[k]
 function updVP(v){const p=document.getElementById('vpr');p.textContent=fmtM(v)||'';document.querySelectorAll('.prb').forEach((b,i)=>b.classList.toggle('on',Number(v)===[1000,5000,10000,50000,100000][i]));}
 function setVP(v){document.getElementById('fv').value=v;updVP(v);}
 function selG(g){window._fs.group=window._fs.group===g?'':g;document.querySelectorAll('#gch .chip').forEach(el=>el.classList.toggle('ca',el.textContent===g&&window._fs.group===g));}
-function addGF(){const i=document.getElementById('ng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g))S.groups.push(g);window._fs.group=g;i.value='';document.getElementById('gch').innerHTML=S.groups.map(gr=>`<span class="chip ${window._fs.group===gr?'ca':''}" onclick="selG('${esc(gr)}')">${esc(gr)}</span>`).join('');}
+function addGF(){const i=document.getElementById('ng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g)){S.groups.push(g);syncCfg();}window._fs.group=g;i.value='';document.getElementById('gch').innerHTML=S.groups.map(gr=>`<span class="chip ${window._fs.group===gr?'ca':''}" onclick="selG('${esc(gr)}')">${esc(gr)}</span>`).join('');}
 function togA(p){const fs=window._fs;fs.assignees=fs.assignees.includes(p)?fs.assignees.filter(x=>x!==p):[...fs.assignees,p];document.querySelectorAll('#ach .chip').forEach(el=>el.classList.toggle('cg',fs.assignees.includes(el.textContent)));}
-function addPF(){const i=document.getElementById('np'),p=i.value.trim();if(!p)return;if(!S.people.includes(p))S.people.push(p);togA(p);i.value='';document.getElementById('ach').innerHTML=S.people.map(pe=>`<span class="chip ${window._fs.assignees.includes(pe)?'cg':''}" onclick="togA('${esc(pe)}')">${esc(pe)}</span>`).join('');}
+function addPF(){const i=document.getElementById('np'),p=i.value.trim();if(!p)return;if(!S.people.includes(p)){S.people.push(p);syncCfg();}togA(p);i.value='';document.getElementById('ach').innerHTML=S.people.map(pe=>`<span class="chip ${window._fs.assignees.includes(pe)?'cg':''}" onclick="togA('${esc(pe)}')">${esc(pe)}</span>`).join('');}
 async function subForm(){
   const title=document.getElementById('ft').value.trim();if(!title){alert('Title required.');return;}
   const dl=document.getElementById('fdl').value;
