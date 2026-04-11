@@ -290,7 +290,18 @@ async function loadWsData(){
   await initSheets();
   const[tr,cr]=await Promise.all([sGet('Tasks!A1:N9999'),sGet('Config!A1:B10')]);
   S.tasks=(tr.values||[]).slice(1).filter(r=>r[0]).map(r2t);
+
+  // Load saved groups and people from Config sheet
   (cr.values||[]).forEach(row=>{try{if(row[0]==='groups')S.groups=JSON.parse(row[1])||S.groups;if(row[0]==='people')S.people=JSON.parse(row[1])||S.people;}catch{}});
+
+  // Also scan all existing tasks and merge any groups/people not yet in the lists
+  S.tasks.forEach(t=>{
+    if(t.group&&!S.groups.includes(t.group))S.groups.push(t.group);
+    (t.assignees||[]).forEach(p=>{if(p&&!S.people.includes(p))S.people.push(p);});
+  });
+
+  // If lists changed, save back to Config sheet
+  await syncCfg();
 }
 async function syncTasks(){showSync('Syncing…');try{await clearWrite('Tasks',[TCOLS,...S.tasks.map(t2r)]);}finally{setTimeout(()=>showSync(null),700);}}
 async function syncCfg(){showSync('Saving…');try{await clearWrite('Config',[['groups',JSON.stringify(S.groups)],['people',JSON.stringify(S.people)]]);}finally{setTimeout(()=>showSync(null),600);}}
