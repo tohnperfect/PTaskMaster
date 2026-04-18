@@ -578,17 +578,17 @@ function renderCard(t){
         </div>
       </div>
       <div class="ta">
-  ${t.deadline?`<button onclick="addToCalendar('${t.id}')" title="Add to Google Calendar" style="color:${isOD(t.deadline)?'var(--r)':'#34d399'}">${I.cal}</button>`:''}
   <button onclick="openEditTask('${t.id}')">${I.edit}</button>
   <button class="dl" onclick="deleteTask('${t.id}')">${I.trash}</button>
 </div>
     </div>
-    <div class="tx ${isE?'on':''}">
+      <div class="tx ${isE?'on':''}">
       ${t.description?`<p style="color:#d1d5db;margin-bottom:7px">${esc(t.description)}</p>`:''}
       ${mv?`<p>Value: <strong style="color:var(--g)">${mv}</strong></p>`:''}
       <p>Created: ${fmtFull(t.createdAt)}</p>
       ${t.done?`<p style="color:var(--g)">✓ Done: ${fmtFull(t.finishedAt)}</p>`:''}
-    </div>
+      ${t.deadline&&!t.done?`<button onclick="addToCalendar('${t.id}')" style="margin-top:10px;width:100%;padding:9px;border-radius:10px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.1);color:#34d399;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:6px">${I.cal} Add to Google Calendar</button>`:''}
+      </div>
   </div>`;
 }
 
