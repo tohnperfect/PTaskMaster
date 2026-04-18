@@ -166,7 +166,7 @@ input[type=datetime-local]{color-scheme:dark}
 // ═══════════════════════════════════════════════════
 const CLIENT_ID = '744722796469-no8r8kgrei3cehrg33ojjiqesania0gt.apps.googleusercontent.com';
 // ═══════════════════════════════════════════════════
-const SCOPES = 'email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
+const SCOPES = 'email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events';
 const TCOLS = ['id','title','description','isBig','isUrgent','priority','value','deadline','assignees','group','done','createdAt','finishedAt','notes'];
 const QD = {'big-urgent':{l:'Big & Urgent',c:'#ef4444',bg:'rgba(239,68,68,0.12)',e:'🔥'},'big-noturgent':{l:'Big, Not Urgent',c:'#f59e0b',bg:'rgba(245,158,11,0.12)',e:'⭐'},'small-urgent':{l:'Small & Urgent',c:'#3b82f6',bg:'rgba(59,130,246,0.12)',e:'⚡'},'small-noturgent':{l:'Small, Not Urgent',c:'#6b7280',bg:'rgba(107,114,128,0.1)',e:'📋'}};
 
@@ -311,6 +311,42 @@ async function createTask(form){const t={...form,id:uid(),done:false,createdAt:n
 async function updateTask(id,form){S.tasks=S.tasks.map(t=>t.id===id?{...t,...form}:t);renderApp();if(form.group&&!S.groups.includes(form.group)){S.groups.push(form.group);syncCfg();}(form.assignees||[]).forEach(p=>{if(!S.people.includes(p)){S.people.push(p);syncCfg();}});await syncTasks();}
 async function toggleTask(id){S.tasks=S.tasks.map(t=>t.id!==id?t:{...t,done:!t.done,finishedAt:!t.done?new Date().toISOString():''});renderApp();await syncTasks();}
 async function deleteTask(id){if(!confirm('Delete this task?'))return;S.tasks=S.tasks.filter(t=>t.id!==id);renderApp();await syncTasks();}
+
+// ── Add to Google Calendar ────────────────────────────────────────────────
+async function addToCalendar(id){
+  const t=S.tasks.find(t=>t.id===id);
+  if(!t||!t.deadline){toast('No deadline set for this task.');return;}
+  showSync('Adding to Calendar...');
+  try{
+    await ensureToken();
+    const start=new Date(t.deadline);
+    const end=new Date(start.getTime()+60*60*1000); // 1 hour duration
+    const event={
+      summary:`[TM] ${t.title}`,
+      description:[
+        t.description?`${t.description}\n`:'',
+        `Quadrant: ${QD[getQ(t)].e} ${QD[getQ(t)].l}`,
+        `Priority: P${t.priority}`,
+        t.value?`Value: ${fmtM(t.value)}`:'',
+        t.group?`Group: ${t.group}`:'',
+        t.assignees?.length?`Assigned to: ${t.assignees.join(', ')}`:'',
+        `\nCreated by TaskMaster`,
+      ].filter(Boolean).join('\n'),
+      start:{dateTime:start.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone},
+      end:{dateTime:end.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone},
+      reminders:{useDefault:false,overrides:[{method:'popup',minutes:60},{method:'popup',minutes:1440}]},
+    };
+    const r=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+      method:'POST',
+      headers:{Authorization:`Bearer ${S.token}`,'Content-Type':'application/json'},
+      body:JSON.stringify(event)
+    });
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error?.message||'Calendar error');
+    toast('✓ Added to Google Calendar!');
+  }catch(e){alert('Calendar error: '+e.message);}
+  finally{showSync(null);}
+}
 
 // ── CSV Export ────────────────────────────────────────────────
 function exportCSV(filter='all'){const tasks=filter==='done'?S.tasks.filter(t=>t.done):filter==='active'?S.tasks.filter(t=>!t.done):S.tasks;if(!tasks.length){alert('No tasks to export.');return;}const hdrs=['Title','Status','Quadrant','Priority','Value(THB)','Group','Assignees','Deadline','Created','Completed','Duration(days)'];const rows=tasks.map(t=>{const dur=t.createdAt&&t.finishedAt?Math.ceil((new Date(t.finishedAt)-new Date(t.createdAt))/86400000):'';return[`"${t.title}"`,t.done?'Done':'Active',getQ(t),t.priority,t.value||'',t.group||'',(t.assignees||[]).join(';'),t.deadline||'',t.createdAt,t.finishedAt||'',dur].join(',');});const blob=new Blob([[hdrs.join(','),...rows].join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tasks_${filter}_${new Date().toISOString().slice(0,10)}.csv`;a.click();}
@@ -541,7 +577,11 @@ function renderCard(t){
           ${t.assignees?.length?`<span class="mi" style="color:var(--g)">${I.user} ${esc(t.assignees.join(', '))}</span>`:''}
         </div>
       </div>
-      <div class="ta"><button onclick="openEditTask('${t.id}')">${I.edit}</button><button class="dl" onclick="deleteTask('${t.id}')">${I.trash}</button></div>
+      <div class="ta">
+  ${t.deadline?`<button onclick="addToCalendar('${t.id}')" title="Add to Google Calendar" style="color:${isOD(t.deadline)?'var(--r)':'#34d399'}">${I.cal}</button>`:''}
+  <button onclick="openEditTask('${t.id}')">${I.edit}</button>
+  <button class="dl" onclick="deleteTask('${t.id}')">${I.trash}</button>
+</div>
     </div>
     <div class="tx ${isE?'on':''}">
       ${t.description?`<p style="color:#d1d5db;margin-bottom:7px">${esc(t.description)}</p>`:''}
