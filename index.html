@@ -219,13 +219,28 @@ function initAuth(){
 async function onToken(resp){
   if(resp.error){console.error(resp);return;}
   S.token=resp.access_token;S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;
+  localStorage.setItem('tm_token',S.token);
+  localStorage.setItem('tm_texp',S.texp);
   try{const r=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${S.token}`}});S.user=await r.json();showWorkspaces();}
   catch(e){alert('Login error: '+e.message);}
 }
 function signIn(){if(!tcl){initAuth();setTimeout(()=>tcl.requestAccessToken({prompt:'select_account'}),200);}else tcl.requestAccessToken({prompt:'select_account'});}
-function signOut(){if(S.token)try{google.accounts.oauth2.revoke(S.token,()=>{});}catch{}S.token=null;S.user=null;S.ws=null;S.tasks=[];S.workspaces=[];showLogin();}
-async function ensureToken(){if(S.token&&Date.now()<S.texp)return;return new Promise(r=>{tcl.callback=async resp=>{if(!resp.error){S.token=resp.access_token;S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;}r();};tcl.requestAccessToken({prompt:''});});}
-
+function signOut(){if(S.token)try{google.accounts.oauth2.revoke(S.token,()=>{});}catch{}S.token=null;S.user=null;S.ws=null;S.tasks=[];S.workspaces=[];localStorage.removeItem('tm_token');localStorage.removeItem('tm_texp');showLogin();}
+async function ensureToken(){
+  if(S.token&&Date.now()<S.texp)return;
+  return new Promise(r=>{
+    tcl.callback=async resp=>{
+      if(!resp.error){
+        S.token=resp.access_token;
+        S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;
+        localStorage.setItem('tm_token',S.token);
+        localStorage.setItem('tm_texp',S.texp);
+      }
+      r();
+    };
+    tcl.requestAccessToken({prompt:''});
+  });
+}
 // ── Drive API ─────────────────────────────────────────────────
 async function driveReq(path,opts={}){
   await ensureToken();
@@ -711,7 +726,40 @@ function setGrp(v){S.grp=v;renderApp();}
 function toggleExp(id){if(S.expanded.has(id))S.expanded.delete(id);else S.expanded.add(id);const el=document.querySelector(`#tc-${id} .tx`);if(el)el.classList.toggle('on',S.expanded.has(id));}
 
 // Init
-window.addEventListener('load',()=>{showLogin();const w=setInterval(()=>{if(window.google?.accounts?.oauth2){clearInterval(w);initAuth();}},100);});
+window.addEventListener('load',()=>{
+  showLogin();
+  const w=setInterval(()=>{
+    if(!window.google?.accounts?.oauth2)return;
+    clearInterval(w);
+    initAuth();
+    // Try to restore previous session silently
+    const savedToken=localStorage.getItem('tm_token');
+    const savedExp=Number(localStorage.getItem('tm_texp'));
+    if(savedToken&&savedExp&&Date.now()<savedExp){
+      // Token still valid — restore and go straight to workspaces
+      S.token=savedToken;S.texp=savedExp;
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${S.token}`}})
+        .then(r=>r.ok?r.json():null)
+        .then(user=>{if(user){S.user=user;showWorkspaces();}})
+        .catch(()=>{});
+    } else {
+      // Token expired — try silent refresh without showing prompt
+      setTimeout(()=>{
+        tcl.callback=async resp=>{
+          if(!resp.error){
+            S.token=resp.access_token;
+            S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;
+            localStorage.setItem('tm_token',S.token);
+            localStorage.setItem('tm_texp',S.texp);
+            const ur=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${S.token}`}}).catch(()=>null);
+            if(ur?.ok){S.user=await ur.json();showWorkspaces();}
+          }
+        };
+        tcl.requestAccessToken({prompt:''});
+      },300);
+    }
+  },100);
+});
 </script>
 </body>
 </html>
