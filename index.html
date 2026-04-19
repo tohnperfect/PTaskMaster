@@ -741,32 +741,22 @@ window.addEventListener('load',()=>{
     if(!window.google?.accounts?.oauth2)return;
     clearInterval(w);
     initAuth();
-    // Try to restore previous session silently
+    // Restore session only if token is still valid — no popup needed
     const savedToken=localStorage.getItem('tm_token');
     const savedExp=Number(localStorage.getItem('tm_texp'));
     if(savedToken&&savedExp&&Date.now()<savedExp){
-      // Token still valid — restore and go straight to workspaces
       S.token=savedToken;S.texp=savedExp;
       fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${S.token}`}})
-        .then(r=>r.ok?r.json():null)
-        .then(user=>{if(user){S.user=user;showWorkspaces();}})
-        .catch(()=>{});
-    } else {
-      // Token expired — try silent refresh without showing prompt
-      setTimeout(()=>{
-        tcl.callback=async resp=>{
-          if(!resp.error){
-            S.token=resp.access_token;
-            S.texp=Date.now()+(parseInt(resp.expires_in)-60)*1000;
-            localStorage.setItem('tm_token',S.token);
-            localStorage.setItem('tm_texp',S.texp);
-            const ur=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${S.token}`}}).catch(()=>null);
-            if(ur?.ok){S.user=await ur.json();showWorkspaces();}
-          }
-        };
-        tcl.requestAccessToken({prompt:''});
-      },300);
+        .then(r=>r.ok?r.json():Promise.reject())
+        .then(user=>{S.user=user;showWorkspaces();})
+        .catch(()=>{
+          // Token was rejected by Google — clear it and show login
+          localStorage.removeItem('tm_token');
+          localStorage.removeItem('tm_texp');
+          showLogin();
+        });
     }
+    // If token expired or missing — just stay on login screen, wait for user to click
   },100);
 });
 </script>
