@@ -169,7 +169,7 @@ input[type=datetime-local]{color-scheme:dark}
 const CLIENT_ID = '744722796469-no8r8kgrei3cehrg33ojjiqesania0gt.apps.googleusercontent.com';
 // ═══════════════════════════════════════════════════
 const SCOPES = 'email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events';
-const TCOLS = ['id','title','description','isBig','isUrgent','priority','value','deadline','assignees','group','done','createdAt','finishedAt','notes'];
+const TCOLS = ['id','title','description','isBig','isUrgent','priority','value','deadline','assignees','group','done','createdAt','finishedAt','notes','subtasks'];
 const QD = {'big-urgent':{l:'Big & Urgent',c:'#ef4444',bg:'rgba(239,68,68,0.12)',e:'🔥'},'big-noturgent':{l:'Big, Not Urgent',c:'#f59e0b',bg:'rgba(245,158,11,0.12)',e:'⭐'},'small-urgent':{l:'Small & Urgent',c:'#3b82f6',bg:'rgba(59,130,246,0.12)',e:'⚡'},'small-noturgent':{l:'Small, Not Urgent',c:'#6b7280',bg:'rgba(107,114,128,0.1)',e:'📋'}};
 
 const S={user:null,token:null,texp:0,screen:'login',workspaces:[],ws:null,tasks:[],groups:['Research','Teaching','Admin','Startup'],people:[],tab:'active',sort:'created',grp:'none',fq:'all',modal:null,editTask:null,expanded:new Set(),atab:'overview'};
@@ -301,11 +301,11 @@ async function clearWrite(sh,vals){await sClear(sh);if(vals.length)await sWrite(
 async function initSheets(){try{const c=await sGet('Tasks!A1:A1');if(!c.values)await sWrite('Tasks!A1',[TCOLS]);}catch{await sWrite('Tasks!A1',[TCOLS]);}}
 
 // ── Data ──────────────────────────────────────────────────────
-function r2t(row){const t={};TCOLS.forEach((c,i)=>t[c]=row[i]||'');t.isBig=bool(t.isBig);t.isUrgent=bool(t.isUrgent);t.done=bool(t.done);t.priority=Number(t.priority)||5;t.value=t.value?Number(t.value):'';try{t.assignees=t.assignees?JSON.parse(t.assignees):[]}catch{t.assignees=[];}return t;}
-function t2r(t){return TCOLS.map(c=>{const v=t[c];if(c==='assignees')return JSON.stringify(v||[]);if(['isBig','isUrgent','done'].includes(c))return v?'TRUE':'FALSE';return v??'';});}
+function r2t(row){const t={};TCOLS.forEach((c,i)=>t[c]=row[i]||'');t.isBig=bool(t.isBig);t.isUrgent=bool(t.isUrgent);t.done=bool(t.done);t.priority=Number(t.priority)||5;t.value=t.value?Number(t.value):'';try{t.assignees=t.assignees?JSON.parse(t.assignees):[]}catch{t.assignees=[];}try{t.subtasks=t.subtasks?JSON.parse(t.subtasks):[]}catch{t.subtasks=[];}return t;}
+function t2r(t){return TCOLS.map(c=>{const v=t[c];if(c==='assignees'||c==='subtasks')return JSON.stringify(v||[]);if(['isBig','isUrgent','done'].includes(c))return v?'TRUE':'FALSE';return v??'';});}
 async function loadWsData(){
   await initSheets();
-  const[tr,cr]=await Promise.all([sGet('Tasks!A1:N9999'),sGet('Config!A1:B10')]);
+  const[tr,cr]=await Promise.all([sGet('Tasks!A1:O9999'),sGet('Config!A1:B10')]);
   S.tasks=(tr.values||[]).slice(1).filter(r=>r[0]).map(r2t);
 
   // Load saved groups and people from Config sheet
@@ -328,6 +328,10 @@ async function createTask(form){const t={...form,id:uid(),done:false,createdAt:n
 async function updateTask(id,form){S.tasks=S.tasks.map(t=>t.id===id?{...t,...form}:t);renderApp();if(form.group&&!S.groups.includes(form.group)){S.groups.push(form.group);syncCfg();}(form.assignees||[]).forEach(p=>{if(!S.people.includes(p)){S.people.push(p);syncCfg();}});await syncTasks();}
 async function toggleTask(id){S.tasks=S.tasks.map(t=>t.id!==id?t:{...t,done:!t.done,finishedAt:!t.done?new Date().toISOString():''});renderApp();await syncTasks();}
 async function deleteTask(id){if(!confirm('Delete this task?'))return;S.tasks=S.tasks.filter(t=>t.id!==id);renderApp();await syncTasks();}
+async function togSubtask(taskId,idx){
+  S.tasks=S.tasks.map(t=>{if(t.id!==taskId)return t;const subs=[...(t.subtasks||[])];subs[idx]={...subs[idx],done:!subs[idx].done};return{...t,subtasks:subs};});
+  renderApp();await syncTasks();
+}
 
 // ── Add to Google Calendar ────────────────────────────────────────────────
 async function addToCalendar(id){
@@ -586,6 +590,7 @@ function renderCard(t){
           <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;background:${q.bg};color:${q.c};border:1px solid ${q.c}40">${q.e} ${q.l}</span>
           <span style="font-size:12px;font-weight:700;color:${pCol(t.priority)}">P${t.priority}</span>
           ${mv?`<span style="font-size:12px;font-weight:700;color:var(--g)">💰 ${mv}</span>`:''}
+          ${t.subtasks?.length?`<span style="font-size:12px;color:${t.subtasks.filter(s=>s.done).length===t.subtasks.length?'var(--g)':'var(--m)'}">☑ ${t.subtasks.filter(s=>s.done).length}/${t.subtasks.length}</span>`:''}
         </div>
         <div style="font-size:14px;font-weight:600;line-height:1.4${t.done?';text-decoration:line-through;opacity:.5':''}">${esc(t.title)}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:5px">
@@ -601,6 +606,16 @@ function renderCard(t){
     </div>
     <div class="tx ${isE?'on':''}">
       ${t.description?`<p style="color:#d1d5db;margin-bottom:7px">${esc(t.description)}</p>`:''}
+      ${t.subtasks?.length?`<div style="margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Subtasks ${t.subtasks.filter(s=>s.done).length}/${t.subtasks.length}</div>
+        <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:999px;margin-bottom:9px;overflow:hidden"><div style="height:100%;background:var(--a);border-radius:999px;width:${t.subtasks.length?Math.round(t.subtasks.filter(s=>s.done).length/t.subtasks.length*100):0}%;transition:width .4s"></div></div>
+        ${t.subtasks.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px" onclick="event.stopPropagation();togSubtask('${t.id}',${i})">
+          <div style="width:18px;height:18px;border-radius:5px;border:2px solid ${s.done?'var(--a)':'rgba(255,255,255,0.25)'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${s.done?'var(--a)':'transparent'}">
+            ${s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="11" height="11"><path d="M20 6L9 17l-5-5"/></svg>':''}
+          </div>
+          <span style="font-size:12px;cursor:pointer;${s.done?'text-decoration:line-through;opacity:.45;color:var(--m)':'color:#d1d5db'}">${esc(s.text)}</span>
+        </div>`).join('')}
+      </div>`:''}
       ${mv?`<p>Value: <strong style="color:var(--g)">${mv}</strong></p>`:''}
       <p>Created: ${fmtFull(t.createdAt)}</p>
       ${t.done?`<p style="color:var(--g)">✓ Done: ${fmtFull(t.finishedAt)}</p>`:''}
@@ -649,9 +664,13 @@ function renderForm(){
       <div class="cr2" id="ach">${S.people.map(p=>`<span class="chip ${v.assignees.includes(p)?'cg':''}" onclick="togA('${esc(p)}')">${esc(p)}</span>`).join('')}</div>
       <div class="ar"><input id="np" placeholder="New person…"><button class="ab" style="background:var(--gb);color:#6ee7b7" onclick="addPF()">+ Add</button></div>
     </div>
+    <div class="fg"><div class="fl">☑ Subtasks / Checklist</div>
+      <div id="stlist">${(window._fs.subtasks||[]).map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div onclick="togST(${i})" style="width:20px;height:20px;border-radius:6px;border:2px solid ${s.done?'var(--a)':'rgba(255,255,255,0.2)'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${s.done?'var(--a)':'transparent'}">${s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="12" height="12"><path d="M20 6L9 17l-5-5"/></svg>':''}</div><span style="flex:1;font-size:13px;${s.done?'text-decoration:line-through;opacity:.5':''}">${esc(s.text)}</span><button onclick="delST(${i})" style="border:none;background:transparent;cursor:pointer;color:var(--d);font-size:16px;padding:0 4px">×</button></div>`).join('')}</div>
+      <div class="ar"><input id="nst" placeholder="Add subtask…" onkeydown="if(event.key==='Enter'){event.preventDefault();addSTF();}"><button class="ab" style="background:rgba(255,255,255,0.08);color:var(--m)" onclick="addSTF()">+ Add</button></div>
+    </div>
     <button class="btn bp" onclick="subForm()">${S.editTask?'Save Changes':'Create Task'}</button>
   </div></div>`;
-  window._fs={isBig:v.isBig,isUrgent:v.isUrgent,assignees:[...v.assignees],group:v.group};
+  window._fs={isBig:v.isBig,isUrgent:v.isUrgent,assignees:[...v.assignees],group:v.group,subtasks:[...(t.subtasks||[]).map(s=>({...s}))]};
 }
 function fTog(k){const fs=window._fs;fs[k]=!fs[k];const iB=k==='isBig',val=fs[k];const b=document.getElementById(k==='isBig'?'tbb':'tbu');b.style.background=val?(iB?'rgba(245,158,11,0.18)':'rgba(239,68,68,0.18)'):'rgba(255,255,255,0.05)';b.style.borderColor=val?(iB?'#f59e0b':'#ef4444'):'rgba(255,255,255,0.1)';}
 function updVP(v){const p=document.getElementById('vpr');p.textContent=fmtM(v)||'';document.querySelectorAll('.prb').forEach((b,i)=>b.classList.toggle('on',Number(v)===[1000,5000,10000,50000,100000][i]));}
@@ -660,10 +679,14 @@ function selG(g){window._fs.group=window._fs.group===g?'':g;document.querySelect
 function addGF(){const i=document.getElementById('ng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g)){S.groups.push(g);syncCfg();}window._fs.group=g;i.value='';document.getElementById('gch').innerHTML=S.groups.map(gr=>`<span class="chip ${window._fs.group===gr?'ca':''}" onclick="selG('${esc(gr)}')">${esc(gr)}</span>`).join('');}
 function togA(p){const fs=window._fs;fs.assignees=fs.assignees.includes(p)?fs.assignees.filter(x=>x!==p):[...fs.assignees,p];document.querySelectorAll('#ach .chip').forEach(el=>el.classList.toggle('cg',fs.assignees.includes(el.textContent)));}
 function addPF(){const i=document.getElementById('np'),p=i.value.trim();if(!p)return;if(!S.people.includes(p)){S.people.push(p);syncCfg();}togA(p);i.value='';document.getElementById('ach').innerHTML=S.people.map(pe=>`<span class="chip ${window._fs.assignees.includes(pe)?'cg':''}" onclick="togA('${esc(pe)}')">${esc(pe)}</span>`).join('');}
+function togST(i){window._fs.subtasks[i].done=!window._fs.subtasks[i].done;document.getElementById('stlist').innerHTML=renderSTList();}
+function delST(i){window._fs.subtasks.splice(i,1);document.getElementById('stlist').innerHTML=renderSTList();}
+function addSTF(){const inp=document.getElementById('nst'),txt=inp.value.trim();if(!txt)return;window._fs.subtasks.push({id:uid(),text:txt,done:false});inp.value='';document.getElementById('stlist').innerHTML=renderSTList();}
+function renderSTList(){return(window._fs.subtasks||[]).map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div onclick="togST(${i})" style="width:20px;height:20px;border-radius:6px;border:2px solid ${s.done?'var(--a)':'rgba(255,255,255,0.2)'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${s.done?'var(--a)':'transparent'}">${s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="12" height="12"><path d="M20 6L9 17l-5-5"/></svg>':''}</div><span style="flex:1;font-size:13px;${s.done?'text-decoration:line-through;opacity:.5':''}">${esc(s.text)}</span><button onclick="delST(${i})" style="border:none;background:transparent;cursor:pointer;color:var(--d);font-size:16px;padding:0 4px">×</button></div>`).join('');}
 async function subForm(){
   const title=document.getElementById('ft').value.trim();if(!title){alert('Title required.');return;}
   const dl=document.getElementById('fdl').value;
-  const form={title,description:document.getElementById('fd').value,isBig:window._fs.isBig,isUrgent:window._fs.isUrgent,priority:Number(document.getElementById('fp').value),value:document.getElementById('fv').value||'',deadline:dl?new Date(dl).toISOString():'',assignees:window._fs.assignees,group:window._fs.group,notes:''};
+  const form={title,description:document.getElementById('fd').value,isBig:window._fs.isBig,isUrgent:window._fs.isUrgent,priority:Number(document.getElementById('fp').value),value:document.getElementById('fv').value||'',deadline:dl?new Date(dl).toISOString():'',assignees:window._fs.assignees,group:window._fs.group,notes:'',subtasks:window._fs.subtasks};
   const editId=S.editTask?.id;closeModal();if(editId)await updateTask(editId,form);else await createTask(form);
 }
 
