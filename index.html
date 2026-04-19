@@ -604,18 +604,18 @@ function renderCard(t){
         <button class="dl" onclick="deleteTask('${t.id}')">${I.trash}</button>
       </div>
     </div>
+    ${t.subtasks?.length?`
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05)">
+      <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:999px;margin-bottom:9px;overflow:hidden"><div style="height:100%;background:var(--a);border-radius:999px;width:${t.subtasks.length?Math.round(t.subtasks.filter(s=>s.done).length/t.subtasks.length*100):0}%;transition:width .4s"></div></div>
+      ${t.subtasks.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px" onclick="event.stopPropagation();togSubtask('${t.id}',${i})">
+        <div style="width:18px;height:18px;border-radius:5px;border:2px solid ${s.done?'var(--a)':'rgba(255,255,255,0.25)'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${s.done?'var(--a)':'transparent'}">
+          ${s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="11" height="11"><path d="M20 6L9 17l-5-5"/></svg>':''}
+        </div>
+        <span style="font-size:13px;cursor:pointer;${s.done?'text-decoration:line-through;opacity:.45;color:var(--m)':'color:#d1d5db'}">${esc(s.text)}</span>
+      </div>`).join('')}
+    </div>`:''}
     <div class="tx ${isE?'on':''}">
       ${t.description?`<p style="color:#d1d5db;margin-bottom:7px">${esc(t.description)}</p>`:''}
-      ${t.subtasks?.length?`<div style="margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,0.05)">
-        <div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Subtasks ${t.subtasks.filter(s=>s.done).length}/${t.subtasks.length}</div>
-        <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:999px;margin-bottom:9px;overflow:hidden"><div style="height:100%;background:var(--a);border-radius:999px;width:${t.subtasks.length?Math.round(t.subtasks.filter(s=>s.done).length/t.subtasks.length*100):0}%;transition:width .4s"></div></div>
-        ${t.subtasks.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px" onclick="event.stopPropagation();togSubtask('${t.id}',${i})">
-          <div style="width:18px;height:18px;border-radius:5px;border:2px solid ${s.done?'var(--a)':'rgba(255,255,255,0.25)'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${s.done?'var(--a)':'transparent'}">
-            ${s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="11" height="11"><path d="M20 6L9 17l-5-5"/></svg>':''}
-          </div>
-          <span style="font-size:12px;cursor:pointer;${s.done?'text-decoration:line-through;opacity:.45;color:var(--m)':'color:#d1d5db'}">${esc(s.text)}</span>
-        </div>`).join('')}
-      </div>`:''}
       ${mv?`<p>Value: <strong style="color:var(--g)">${mv}</strong></p>`:''}
       <p>Created: ${fmtFull(t.createdAt)}</p>
       ${t.done?`<p style="color:var(--g)">✓ Done: ${fmtFull(t.finishedAt)}</p>`:''}
