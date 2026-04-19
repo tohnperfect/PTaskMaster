@@ -638,6 +638,7 @@ function openEditTask(id){S.editTask=S.tasks.find(t=>t.id===id)||null;S.modal='f
 function closeModal(){S.modal=null;S.editTask=null;const m=document.getElementById('modal-area');if(m)m.innerHTML='';}
 function renderForm(){
   const t=S.editTask||{},v={title:t.title||'',description:t.description||'',isBig:t.isBig||false,isUrgent:t.isUrgent||false,priority:t.priority||5,value:t.value||'',deadline:t.deadline||'',assignees:t.assignees||[],group:t.group||''};
+  window._fs={isBig:v.isBig,isUrgent:v.isUrgent,assignees:[...v.assignees],group:v.group,subtasks:[...(t.subtasks||[]).map(s=>({...s}))]};
   document.getElementById('modal-area').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="hdl"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:17px"><h2 class="dp" style="font-size:20px">${S.editTask?'Edit Task':'New Task'}</h2><button class="btn bg" onclick="closeModal()">${I.close}</button></div>
     <div class="fg"><div class="fl">Task Title *</div><input id="ft" value="${esc(v.title)}" placeholder="What needs to be done?"></div>
@@ -669,7 +670,6 @@ function renderForm(){
     </div>
     <button class="btn bp" onclick="subForm()">${S.editTask?'Save Changes':'Create Task'}</button>
   </div></div>`;
-  window._fs={isBig:v.isBig,isUrgent:v.isUrgent,assignees:[...v.assignees],group:v.group,subtasks:[...(t.subtasks||[]).map(s=>({...s}))]};
 }
 function fTog(k){const fs=window._fs;fs[k]=!fs[k];const iB=k==='isBig',val=fs[k];const b=document.getElementById(k==='isBig'?'tbb':'tbu');b.style.background=val?(iB?'rgba(245,158,11,0.18)':'rgba(239,68,68,0.18)'):'rgba(255,255,255,0.05)';b.style.borderColor=val?(iB?'#f59e0b':'#ef4444'):'rgba(255,255,255,0.1)';}
 function updVP(v){const p=document.getElementById('vpr');p.textContent=fmtM(v)||'';document.querySelectorAll('.prb').forEach((b,i)=>b.classList.toggle('on',Number(v)===[1000,5000,10000,50000,100000][i]));}
