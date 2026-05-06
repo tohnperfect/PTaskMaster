@@ -178,6 +178,9 @@ let tcl;
 // Utils
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+// jse: escape a string that will be a JS string literal inside an HTML attribute (e.g. onclick="fn('...')").
+// Escapes backslash and single-quote for the JS parser, then HTML-escapes & < " for the HTML parser.
+const jse=s=>String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const fmt=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}):'—';
 const fmtFull=d=>d?new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 const fmtM=v=>{const n=Number(v);if(!v&&v!==0||isNaN(n))return null;if(n>=1e6)return`฿${(n/1e6).toFixed(1)}M`;if(n>=1e3)return`฿${(n/1e3).toFixed(0)}K`;return`฿${n.toLocaleString()}`;};
@@ -443,8 +446,8 @@ function wsCard(w){
     <div class="wsac" onclick="event.stopPropagation()">
       <button class="wsb" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff" onclick="openWS('${esc(w.id)}')">Open</button>
       ${w.isOwner?`
-      <button class="wsb" style="background:var(--gb);color:#6ee7b7;border:1px solid rgba(52,211,153,0.3)" onclick="openShareModal('${esc(w.id)}','${esc(w.name)}')">${I.share} Share</button>
-      <button class="wsb" style="background:var(--rb);color:var(--r);border:1px solid rgba(239,68,68,0.25);flex:0;padding:8px 10px" onclick="doDelWs('${esc(w.id)}','${esc(w.name)}')">${I.trash}</button>`
+      <button class="wsb" style="background:var(--gb);color:#6ee7b7;border:1px solid rgba(52,211,153,0.3)" onclick="openShareModal('${esc(w.id)}','${jse(w.name)}')">${I.share} Share</button>
+      <button class="wsb" style="background:var(--rb);color:var(--r);border:1px solid rgba(239,68,68,0.25);flex:0;padding:8px 10px" onclick="doDelWs('${esc(w.id)}','${jse(w.name)}')">${I.trash}</button>`
       :`<button class="wsb" style="background:rgba(255,255,255,0.05);color:var(--m)" onclick="window.open('https://docs.google.com/spreadsheets/d/${esc(w.id)}','_blank')">${I.ext} Open Sheet</button>`}
     </div>
   </div>`;
@@ -657,11 +660,11 @@ function renderForm(){
     </div>
     <div class="fg"><div class="fl">${I.cal} Deadline</div><input type="datetime-local" id="fdl" value="${v.deadline?v.deadline.slice(0,16):''}"></div>
     <div class="fg"><div class="fl">${I.tag} Group</div>
-      <div class="cr2" id="gch">${S.groups.map(g=>`<span class="chip ${v.group===g?'ca':''}" onclick="selG('${esc(g)}')">${esc(g)}</span>`).join('')}</div>
+      <div class="cr2" id="gch">${S.groups.map(g=>`<span class="chip ${v.group===g?'ca':''}" onclick="selG('${jse(g)}')">${esc(g)}</span>`).join('')}</div>
       <div class="ar"><input id="ng" placeholder="New group…"><button class="ab" style="background:var(--ab);color:var(--al)" onclick="addGF()">+ Add</button></div>
     </div>
     <div class="fg"><div class="fl">${I.user} Assignees</div>
-      <div class="cr2" id="ach">${S.people.map(p=>`<span class="chip ${v.assignees.includes(p)?'cg':''}" onclick="togA('${esc(p)}')">${esc(p)}</span>`).join('')}</div>
+      <div class="cr2" id="ach">${S.people.map(p=>`<span class="chip ${v.assignees.includes(p)?'cg':''}" onclick="togA('${jse(p)}')">${esc(p)}</span>`).join('')}</div>
       <div class="ar"><input id="np" placeholder="New person…"><button class="ab" style="background:var(--gb);color:#6ee7b7" onclick="addPF()">+ Add</button></div>
     </div>
     <div class="fg"><div class="fl">☑ Subtasks / Checklist</div>
@@ -675,9 +678,9 @@ function fTog(k){const fs=window._fs;fs[k]=!fs[k];const iB=k==='isBig',val=fs[k]
 function updVP(v){const p=document.getElementById('vpr');p.textContent=fmtM(v)||'';document.querySelectorAll('.prb').forEach((b,i)=>b.classList.toggle('on',Number(v)===[1000,5000,10000,50000,100000][i]));}
 function setVP(v){document.getElementById('fv').value=v;updVP(v);}
 function selG(g){window._fs.group=window._fs.group===g?'':g;document.querySelectorAll('#gch .chip').forEach(el=>el.classList.toggle('ca',el.textContent===g&&window._fs.group===g));}
-function addGF(){const i=document.getElementById('ng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g)){S.groups.push(g);syncCfg();}window._fs.group=g;i.value='';document.getElementById('gch').innerHTML=S.groups.map(gr=>`<span class="chip ${window._fs.group===gr?'ca':''}" onclick="selG('${esc(gr)}')">${esc(gr)}</span>`).join('');}
+function addGF(){const i=document.getElementById('ng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g)){S.groups.push(g);syncCfg();}window._fs.group=g;i.value='';document.getElementById('gch').innerHTML=S.groups.map(gr=>`<span class="chip ${window._fs.group===gr?'ca':''}" onclick="selG('${jse(gr)}')">${esc(gr)}</span>`).join('');}
 function togA(p){const fs=window._fs;fs.assignees=fs.assignees.includes(p)?fs.assignees.filter(x=>x!==p):[...fs.assignees,p];document.querySelectorAll('#ach .chip').forEach(el=>el.classList.toggle('cg',fs.assignees.includes(el.textContent)));}
-function addPF(){const i=document.getElementById('np'),p=i.value.trim();if(!p)return;if(!S.people.includes(p)){S.people.push(p);syncCfg();}togA(p);i.value='';document.getElementById('ach').innerHTML=S.people.map(pe=>`<span class="chip ${window._fs.assignees.includes(pe)?'cg':''}" onclick="togA('${esc(pe)}')">${esc(pe)}</span>`).join('');}
+function addPF(){const i=document.getElementById('np'),p=i.value.trim();if(!p)return;if(!S.people.includes(p)){S.people.push(p);syncCfg();}togA(p);i.value='';document.getElementById('ach').innerHTML=S.people.map(pe=>`<span class="chip ${window._fs.assignees.includes(pe)?'cg':''}" onclick="togA('${jse(pe)}')">${esc(pe)}</span>`).join('');}
 function togST(i){window._fs.subtasks[i].done=!window._fs.subtasks[i].done;document.getElementById('stlist').innerHTML=renderSTList();}
 function delST(i){window._fs.subtasks.splice(i,1);document.getElementById('stlist').innerHTML=renderSTList();}
 function addSTF(){const inp=document.getElementById('nst'),txt=inp.value.trim();if(!txt)return;window._fs.subtasks.push({id:uid(),text:txt,done:false});inp.value='';document.getElementById('stlist').innerHTML=renderSTList();}
@@ -732,23 +735,23 @@ function renderSettings(){
       <div style="font-size:12px;color:var(--m);margin-bottom:11px">${S.ws?.isOwner?'You are the owner':'Shared with you by '+esc(S.ws?.owner||'')}</div>
       <div style="display:flex;gap:7px">
         <button class="btn" style="flex:1;background:rgba(255,255,255,0.06);color:var(--m);padding:9px;font-size:12px" onclick="closeModal();showWorkspaces()">Switch Workspace</button>
-        ${S.ws?.isOwner?`<button class="btn" style="flex:1;background:var(--gb);color:#6ee7b7;padding:9px;font-size:12px;border:1px solid rgba(52,211,153,0.3)" onclick="closeModal();openShareModal('${esc(S.ws?.id||'')}','${esc(S.ws?.name||'')}')">${I.share} Share</button>`:''}
+        ${S.ws?.isOwner?`<button class="btn" style="flex:1;background:var(--gb);color:#6ee7b7;padding:9px;font-size:12px;border:1px solid rgba(52,211,153,0.3)" onclick="closeModal();openShareModal('${esc(S.ws?.id||'')}','${jse(S.ws?.name||'')}')">${I.share} Share</button>`:''}
         <button class="btn bg" style="padding:9px" onclick="window.open('https://docs.google.com/spreadsheets/d/${esc(S.ws?.id||'')}','_blank')" title="Open in Sheets">${I.ext}</button>
       </div>
     </div>
     <div style="margin-bottom:17px"><div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Groups</div>
-      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px" id="sg">${S.groups.map(g=>`<span class="chip ca">${esc(g)} <span onclick="rmG('${esc(g)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px" id="sg">${S.groups.map(g=>`<span class="chip ca">${esc(g)} <span onclick="rmG('${jse(g)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('')}</div>
       <div class="ar"><input id="sng" placeholder="Add group…" style="font-size:13px"><button class="ab" style="background:var(--ab);color:var(--al)" onclick="addGS()">Add</button></div>
     </div>
     <div style="margin-bottom:17px"><div style="font-size:11px;color:var(--d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">People</div>
-      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px" id="sp">${S.people.map(p=>`<span class="chip cg">${esc(p)} <span onclick="rmP('${esc(p)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px" id="sp">${S.people.map(p=>`<span class="chip cg">${esc(p)} <span onclick="rmP('${jse(p)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('')}</div>
       <div class="ar"><input id="snp" placeholder="Add person…" style="font-size:13px"><button class="ab" style="background:var(--gb);color:#6ee7b7" onclick="addPS()">Add</button></div>
     </div>
   </div></div>`;
 }
-async function rmG(g){S.groups=S.groups.filter(x=>x!==g);document.getElementById('sg').innerHTML=S.groups.map(g=>`<span class="chip ca">${esc(g)} <span onclick="rmG('${esc(g)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('');await syncCfg();}
+async function rmG(g){S.groups=S.groups.filter(x=>x!==g);document.getElementById('sg').innerHTML=S.groups.map(g=>`<span class="chip ca">${esc(g)} <span onclick="rmG('${jse(g)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('');await syncCfg();}
 async function addGS(){const i=document.getElementById('sng'),g=i.value.trim();if(!g)return;if(!S.groups.includes(g))S.groups.push(g);i.value='';renderSettings();await syncCfg();}
-async function rmP(p){S.people=S.people.filter(x=>x!==p);document.getElementById('sp').innerHTML=S.people.map(p=>`<span class="chip cg">${esc(p)} <span onclick="rmP('${esc(p)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('');await syncCfg();}
+async function rmP(p){S.people=S.people.filter(x=>x!==p);document.getElementById('sp').innerHTML=S.people.map(p=>`<span class="chip cg">${esc(p)} <span onclick="rmP('${jse(p)}')" style="margin-left:3px;cursor:pointer;opacity:.6;font-size:13px">×</span></span>`).join('');await syncCfg();}
 async function addPS(){const i=document.getElementById('snp'),p=i.value.trim();if(!p)return;if(!S.people.includes(p))S.people.push(p);i.value='';renderSettings();await syncCfg();}
 
 // Controls
